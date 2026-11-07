@@ -4,7 +4,7 @@
 
 本文说明如何在本地修改和检查评估代码，再通过 Git 同步到服务器，完成 Evo-1 的六任务原模型评估。先在服务器运行 2 集 smoke test，确认模型、渲染和结果记录能连通，再运行每任务 10 集的基线。
 
-当前还没有配置 SSH、实际服务器目录或项目的 `origin`，也没有完成服务器验证。本页命令是操作步骤，不代表已经获得成功率。服务器示例目录 `/srv/fyp` 必须换成你有写权限的实际目录。
+项目远程仓库为 `https://github.com/Ghostvulture/vla_post_training.git`；服务器连接、实际目录和运行环境仍需验证。本页命令是操作步骤，不代表已经获得成功率。服务器示例目录 `/srv/fyp` 必须换成你有写权限的实际目录。
 
 ## 本地与服务器分工
 
@@ -51,14 +51,14 @@ python3 evaluations/fyp/evaluate.py \
 
 ## 通过 Git 同步代码
 
-本地已使用独立分支 `codex/evo1-baseline`，`upstream` 指向官方 RLinf。准备自己的远程仓库 URL，将它设为 `origin`；不要向 `upstream` 推送项目改动。先检查并提交需要同步的文件，提交使用你的 Git 身份和 `git commit -s`。
+本地已使用独立分支 `main`，`upstream` 指向官方 RLinf。准备自己的远程仓库 URL，将它设为 `origin`；不要向 `upstream` 推送项目改动。先检查并提交需要同步的文件，提交使用你的 Git 身份和 `git commit -s`。
 
 首次发布分支时，在本地运行：
 
 ```bash
-FYP_REMOTE_URL='git@github.com:YOUR_ACCOUNT/YOUR_REPOSITORY.git'
+FYP_REMOTE_URL='https://github.com/Ghostvulture/vla_post_training.git'
 git remote add origin "$FYP_REMOTE_URL"
-git push -u origin codex/evo1-baseline
+git push -u origin main
 ```
 
 先替换 `FYP_REMOTE_URL`。`git push` 只上传已提交的代码，不会上传未提交修改、模型或结果。如果 `origin` 已存在，先用 `git remote -v` 核对，避免重复添加。
@@ -77,8 +77,8 @@ ssh "$FYP_SSH_HOST"
 ```bash
 mkdir -p /srv/fyp
 cd /srv/fyp
-FYP_REMOTE_URL='git@github.com:YOUR_ACCOUNT/YOUR_REPOSITORY.git'
-git clone --branch codex/evo1-baseline "$FYP_REMOTE_URL" RLinf
+FYP_REMOTE_URL='https://github.com/Ghostvulture/vla_post_training.git'
+git clone --branch main "$FYP_REMOTE_URL" RLinf
 cd /srv/fyp/RLinf
 ```
 

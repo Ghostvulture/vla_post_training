@@ -4,7 +4,7 @@
 
 This guide takes you from editing and checking evaluation code locally to running a six-task Evo-1 baseline on a server through Git. Start with a two-episode server smoke test to check model loading, rendering, and result recording, then evaluate ten episodes per task.
 
-SSH, the actual server paths, and this project's `origin` are not configured yet, and server validation has not been completed. These commands describe the workflow; they do not represent measured success rates. Replace the example `/srv/fyp` directory with a writable location on your server.
+The project remote is `https://github.com/Ghostvulture/vla_post_training.git`. Server access, paths and runtime validation still need to be verified. These commands describe the workflow; they do not represent measured success rates. Replace the example `/srv/fyp` directory with a writable location on your server.
 
 ## Divide Work Between Your Computer and the Server
 
@@ -51,14 +51,14 @@ python3 evaluations/fyp/evaluate.py \
 
 ## Synchronize Code Through Git
 
-The local checkout uses the dedicated `codex/evo1-baseline` branch, with `upstream` pointing to official RLinf. Add your own remote repository as `origin`; keep project pushes on that remote. Review and commit the changes to synchronize first, using your Git identity and `git commit -s`.
+The local checkout uses the dedicated `main` branch, with `upstream` pointing to official RLinf. Add your own remote repository as `origin`; keep project pushes on that remote. Review and commit the changes to synchronize first, using your Git identity and `git commit -s`.
 
 Publish the branch from your computer:
 
 ```bash
-FYP_REMOTE_URL='git@github.com:YOUR_ACCOUNT/YOUR_REPOSITORY.git'
+FYP_REMOTE_URL='https://github.com/Ghostvulture/vla_post_training.git'
 git remote add origin "$FYP_REMOTE_URL"
-git push -u origin codex/evo1-baseline
+git push -u origin main
 ```
 
 Replace `FYP_REMOTE_URL` first. `git push` transfers committed code, not uncommitted changes, models, or results. If `origin` already exists, inspect it with `git remote -v` instead of adding it again.
@@ -77,8 +77,8 @@ Clone the project on the server for the first time:
 ```bash
 mkdir -p /srv/fyp
 cd /srv/fyp
-FYP_REMOTE_URL='git@github.com:YOUR_ACCOUNT/YOUR_REPOSITORY.git'
-git clone --branch codex/evo1-baseline "$FYP_REMOTE_URL" RLinf
+FYP_REMOTE_URL='https://github.com/Ghostvulture/vla_post_training.git'
+git clone --branch main "$FYP_REMOTE_URL" RLinf
 cd /srv/fyp/RLinf
 ```
 

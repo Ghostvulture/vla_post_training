@@ -12,7 +12,7 @@ RLinf is a distributed reinforcement learning framework for embodied and agentic
 - Server updates use `git pull --ff-only` between runs. Never update code or overwrite model directories used by an active run. Record the Git commit and installed dependency versions with results.
 - The first milestone is Evo1_LIBERO evaluation through the official RLinf entry point. Use the exact task names and distinct initial states in `evaluations/fyp/`; do not replace incomplete runs with invented scores.
 - The later method is RLinf GRPO with the VLM frozen and action head trainable. Do not run SFT or download demonstration datasets for the baseline. Select A/B/C from measured results before starting RL.
-- SSH, server storage paths, allocated GPU and the user's push destination have not been supplied. Do not guess them or treat dry-run/unit-test success as a server evaluation.
+- The project remote is `https://github.com/Ghostvulture/vla_post_training.git`, branch `main`. Verify server access, storage paths and allocated GPU before running. Do not treat dry-run/unit-test success as a server evaluation.
 
 ## Working with a human submitter
 
