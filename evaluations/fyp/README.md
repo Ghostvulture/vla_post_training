@@ -2,158 +2,59 @@
 
 [中文](README.zh-CN.md)
 
-This guide takes you from editing and checking evaluation code locally to running a six-task Evo-1 baseline on a server through Git. Start with a two-episode server smoke test to check model loading, rendering, and result recording, then evaluate ten episodes per task.
+This guide covers connecting from your computer, activating the installed Evo-1 environment, submitting LIBERO evaluation through Slurm, and inspecting results. Edit code and run CPU checks locally; load models, simulate, and evaluate on the server. The `Evo1_LIBERO` checkpoint was trained for LIBERO. This project did not run additional SFT or RL before evaluation.
 
-The project remote is `https://github.com/Ghostvulture/vla_post_training.git`. Server access, paths and runtime validation still need to be verified. These commands describe the workflow; they do not represent measured success rates. Replace the example `/srv/fyp` directory with a writable location on your server.
+## Prepare the Environment After Login
 
-## Divide Work Between Your Computer and the Server
-
-Use your computer to edit code and the server to run the model and simulator. Local checks cover arguments, generated commands, log processing, and initial-state selection. They do not establish that the model loads or completes a task.
-
-| Work | Your Computer | Server |
-|---|---|---|
-| Edit code, configuration, and documentation | Edit with Codex | Receive through Git |
-| CPU unit tests and `--dry-run` | Run | Optionally repeat after updates |
-| Download models and simulator assets | Skip | Download and retain |
-| Model inference, MuJoCo rendering, smoke tests | Skip | Run |
-| Baseline evaluation and later RL training | Skip | Run |
-| Read CSV, JSON, and logs | Optionally copy small files for analysis | Retain original records |
-
-This stage reuses the [official evaluation launcher](../run_eval.sh) and [Evo-1 evaluation configuration](../libero/libero_spatial_evo1_eval.yaml). Evaluate the released checkpoint without SFT or demonstration downloads. The installer downloads the simulator assets needed to run LIBERO; those are different from SFT demonstration trajectories.
-
-## Check the Code Locally
-
-Run CPU checks from your local repository root. Use an existing test environment; install missing test dependencies such as `pytest` according to that environment's requirements. Keep the server installation commands on the server.
+Connect from a terminal on your computer. Replace the example with your SSH username and address, or use your configured SSH alias:
 
 ```bash
-cd /home/xyz/code/works/VLA_test/RLinf
-python3 -m pytest -q \
-  tests/unit_tests/test_fyp_evaluation.py \
-  tests/unit_tests/test_fyp_report.py \
-  tests/unit_tests/test_libero_env.py
+ssh your-user@your-server
 ```
 
-These tests cover evaluation configuration, reporting, and LIBERO initial-state selection. They do not load Evo-1, execute simulations, or produce success rates.
-
-Generate the planned commands using server paths to inspect the task and episode settings:
+Run the following on the server. The personal configuration outside the repository records your server's storage, runtime, and node, and activates the installed virtual environment. Run this block in every new server terminal:
 
 ```bash
-python3 evaluations/fyp/evaluate.py \
-  --model-path /srv/fyp/models/Evo1_LIBERO \
-  --evo-repo /srv/fyp/RLinf/.venv/Evo-1 \
-  --vlm-path /srv/fyp/models/InternVL3-1B \
-  --output-dir /srv/fyp/results/evo1-baseline-batch1 \
-  --episodes 10 --trial-start 0 --num-envs 1 --gpu 0 \
-  --budget-minutes 1200 --dry-run
-```
-
-`--dry-run` only prints commands. It neither imports model or simulator modules nor writes the output directory. Task IDs are resolved by exact full-name matching against the server's installed LIBERO tasks. Local output contains placeholders, not final runnable task IDs; run the Python entry point below so it can resolve them.
-
-## Synchronize Code Through Git
-
-The local checkout uses the dedicated `main` branch, with `upstream` pointing to official RLinf. Add your own remote repository as `origin`; keep project pushes on that remote. Review and commit the changes to synchronize first, using your Git identity and `git commit -s`.
-
-Publish the branch from your computer:
-
-```bash
-FYP_REMOTE_URL='https://github.com/Ghostvulture/vla_post_training.git'
-git remote add origin "$FYP_REMOTE_URL"
-git push -u origin main
-```
-
-Replace `FYP_REMOTE_URL` first. `git push` transfers committed code, not uncommitted changes, models, or results. If `origin` already exists, inspect it with `git remote -v` instead of adding it again.
-
-After configuring SSH, connect from your computer:
-
-```bash
-FYP_SSH_HOST='your-ssh-alias'
-ssh "$FYP_SSH_HOST"
-```
-
-Replace `FYP_SSH_HOST` with a configured SSH alias or `username@server-address`. Manage SSH keys through your local SSH configuration, outside the repository. Run the installation and evaluation commands below in the server terminal.
-
-Clone the project on the server for the first time:
-
-```bash
-mkdir -p /srv/fyp
-cd /srv/fyp
-FYP_REMOTE_URL='https://github.com/Ghostvulture/vla_post_training.git'
-git clone --branch main "$FYP_REMOTE_URL" RLinf
-cd /srv/fyp/RLinf
-```
-
-The server needs read access to this remote repository. For later updates, test and commit locally, then run `git push`. After the current server job ends, run `git pull --ff-only` in the server checkout before launching another batch. Keep a running evaluation's code unchanged. Execution requires a clean server checkout; uncommitted changes prevent launch.
-
-## Install the Environment and Models on the Server
-
-Check the allocated NVIDIA GPU, available GPU memory, and disk space before installing the Evo-1/LIBERO environment for this RLinf version.
-
-```bash
-cd /srv/fyp/RLinf
-nvidia-smi
-df -h /srv/fyp
-bash requirements/install.sh embodied --model evo1 --env libero --no-root
-source .venv/bin/activate
-```
-
-The [official installer](../../requirements/install.sh) supports this combination. `--no-root` skips system dependency installation and applies only when an administrator has already installed those dependencies. It does not supply missing system libraries. Resolve missing-library or compiler errors on the server before retrying. Add `--use-mirror` according to the official instructions if your network needs mirrors. Prefer repository, model, and output paths without spaces.
-
-The installer puts the RLinf Evo-1 fork under `.venv/Evo-1`, or uses `EVO1_PATH` when set. Check that location before passing it to evaluation:
-
-```bash
-FYP_EVO_REPO="${EVO1_PATH:-$PWD/.venv/Evo-1}"
-test -d "$FYP_EVO_REPO"
-realpath "$FYP_EVO_REPO"
-```
-
-Adjust `FYP_EVO_REPO` to the installed location if you used a custom `--venv`. This path follows the installer; it does not establish that installation on your server has succeeded.
-
-Download [Evo1_LIBERO](https://huggingface.co/MINT-SJTU/Evo1_LIBERO) and its base VLM, [InternVL3-1B](https://huggingface.co/OpenGVLab/InternVL3-1B):
-
-```bash
-mkdir -p /srv/fyp/models /srv/fyp/results
-hf download MINT-SJTU/Evo1_LIBERO \
-  --local-dir /srv/fyp/models/Evo1_LIBERO
-hf download OpenGVLab/InternVL3-1B \
-  --local-dir /srv/fyp/models/InternVL3-1B
-```
-
-The installed `huggingface_hub` package supplies `hf`. The Evo checkpoint directory should contain `config.json`, `norm_stats.json`, and `mp_rank_00_model_states.pt`; store the base VLM separately. Pass both as server-local paths to avoid downloads during model loading. Keep models and simulator assets on the server, outside Git.
-
-## Run a Small Server Smoke Test
-
-Run two S1 episodes with video first. Define shared arguments so subsequent commands use the same model paths and GPU settings:
-
-```bash
-cd /srv/fyp/RLinf
-source .venv/bin/activate
-FYP_EVO_REPO="${EVO1_PATH:-$PWD/.venv/Evo-1}"
-FYP_EVAL_ARGS=(
-  --model-path /srv/fyp/models/Evo1_LIBERO
-  --evo-repo "$FYP_EVO_REPO"
-  --vlm-path /srv/fyp/models/InternVL3-1B
-  --num-envs 1
-  --gpu 0
+source "$HOME/.config/fyp/evo1-env.sh"
+cd "$HOME/RLinf"
+mkdir -p "$FYP_STORAGE/results"
+FYP_SLURM=(
+  --partition=GPU
+  --nodelist="$FYP_NODE"
+  --gres=gpu:4090:1
+  --cpus-per-task=8
+  --time=01:40:00
+  --output="$FYP_STORAGE/results/slurm-eval-%j.log"
 )
-python evaluations/fyp/evaluate.py "${FYP_EVAL_ARGS[@]}" \
+command -v python
+squeue -u "$USER"
+```
+
+`FYP_STORAGE` holds models and results; `FYP_RUNTIME` holds the environment and caches. Inspect their configured paths with `cat "$HOME/.config/fyp/evo1-env.sh"`. `FYP_SLURM` requests one 4090, eight CPUs, and a 100-minute limit. `squeue` shows your jobs. If submission reports `AssocMaxSubmitJobLimit`, wait for an existing job to finish before submitting another. Adapt the array to your cluster's allocation rules when they change.
+
+The server-local launcher is `$FYP_RUNTIME/fyp-eval-job.sh`. It loads the same environment inside the job, reads the existing models offline, and calls this project's [evaluation entry point](evaluate.py). Each `--budget-minutes` below limits one evaluation and must leave time for startup and cleanup within Slurm's `--time`.
+
+## Submit Evaluation
+
+### Smoke Test and Video
+
+First check model loading, simulation, and video on two initial states from one task. Use a new output directory for each run:
+
+```bash
+FYP_RUN_ID="$(date +%Y%m%d-%H%M%S)"
+sbatch "${FYP_SLURM[@]}" "$FYP_RUNTIME/fyp-eval-job.sh" \
   --tasks S1 --episodes 2 --trial-start 0 --video \
-  --output-dir /srv/fyp/results/evo1-smoke \
+  --output-dir "$FYP_STORAGE/results/smoke-$FYP_RUN_ID" \
   --budget-minutes 60
 ```
 
-This checks weight loading, action execution, 448×448 rendering, episode records, and video. Zero success can still be a valid measurement; a crash, missing episodes, or absent actions needs investigation first. `--video` permits at most two episodes per task. The baseline leaves video disabled.
+`sbatch` returns a job ID. `--video` supports at most two episodes per task. After completion, find videos under `S1/official_logs/video/eval/` in the output directory. Zero success can be a valid result; investigate missing trajectories, crashes, or absent actions. A smoke test that repeats a formal task and initial state does not add an independent sample.
 
-Read `wall_seconds` in the task summary and use `wall_seconds / 2` to estimate the observed time per episode. Ten episodes across six tasks also involve six task startups, and task lengths can differ; reserve startup time and margin. This is a budget estimate, not a performance promise.
+### Six-Task Screening
 
-`--budget-minutes` limits the whole batch for one evaluation command and defaults to 1200 minutes. Installation, downloads, the smoke test, and earlier batches are not automatically charged to the next batch. The project targets 24 hours including setup; subtract time already spent before passing the remaining budget.
+The launcher matches full task names against the installed LIBERO version. Labels are defined in [tasks.json](tasks.json).
 
-`--gpu` is an index within the devices visible to RLinf. For example, use `--gpu 0` when the server sets `CUDA_VISIBLE_DEVICES=3`; memory sampling maps this to physical GPU 3. `gpu-memory.csv` samples whole-device usage approximately every five seconds, including other processes, so it is not an exact peak for this model alone. Each task uses a separate local Ray instance and temporary directory; the launcher does not run machine-wide `ray stop`.
-
-## Evaluate the Six-Task Baseline on the Server
-
-After the smoke test passes, evaluate ten episodes on each fixed task. [tasks.json](tasks.json) defines the tasks. Before execution, their full names must match the server's LIBERO task table exactly; investigate version or task-table mismatches instead of guessing IDs.
-
-| Label | Task Description | Suite |
+| Label | Task | Suite |
 |---|---|---|
 | S1 | Place the black bowl from the table center on the plate | LIBERO-Spatial |
 | S2 | Place the black bowl beside the cookie box on the plate | LIBERO-Spatial |
@@ -162,60 +63,143 @@ After the smoke test passes, evaluate ten episodes on each fixed task. [tasks.js
 | G1 | Open the middle drawer | LIBERO-Goal |
 | G2 | Push the plate to the stove front | LIBERO-Goal |
 
-These labels identify baseline evaluation tasks; they do not preselect later A/B/C training and transfer groups. Omitting `--tasks` selects all six. Pass a subset such as `--tasks S1 S2` to restrict a run.
+Omit `--tasks` to run all six sequentially. This command uses ten initial states numbered 0–9 per task; each task calls the official RLinf evaluation entry point separately:
 
 ```bash
-python evaluations/fyp/evaluate.py "${FYP_EVAL_ARGS[@]}" \
+FYP_RUN_ID="$(date +%Y%m%d-%H%M%S)"
+sbatch "${FYP_SLURM[@]}" "$FYP_RUNTIME/fyp-eval-job.sh" \
   --episodes 10 --trial-start 0 \
-  --output-dir /srv/fyp/results/evo1-baseline-batch1 \
-  --budget-minutes 1200
+  --output-dir "$FYP_STORAGE/results/screen-0-9-$FYP_RUN_ID" \
+  --budget-minutes 90
 ```
 
-Replace `1200` with the actual remaining minutes. Evaluation retains the official Evo configuration's 350 simulation steps, 448×448 images, and fourteen-step action chunks. Keep those settings consistent across comparisons. If the budget only supports a smaller run, use `--episodes 5` with a new `evo1-baseline-fallback` directory, and report five episodes per task.
+To restrict a run, add `--tasks S1 S2` and use a fresh output directory. Evaluation retains the [Evo-1 configuration](../libero/libero_spatial_evo1_eval.yaml): 448×448 images, 14-step action chunks, 350 simulation steps per episode, and the `libero_robot` normalization key. Record changes to the model, code version, or evaluation settings and reassess comparability.
 
-To expand to twenty episodes per task, use a new directory and the next initial-state range:
+If time permits, wait for the first batch to finish and submit states 10–19:
 
 ```bash
-python evaluations/fyp/evaluate.py "${FYP_EVAL_ARGS[@]}" \
+FYP_RUN_ID="$(date +%Y%m%d-%H%M%S)"
+sbatch "${FYP_SLURM[@]}" "$FYP_RUNTIME/fyp-eval-job.sh" \
   --episodes 10 --trial-start 10 \
-  --output-dir /srv/fyp/results/evo1-baseline-batch2 \
-  --budget-minutes 1200
+  --output-dir "$FYP_STORAGE/results/screen-10-19-$FYP_RUN_ID" \
+  --budget-minutes 90
 ```
 
-The first batch uses trials 0–9 and the second uses 10–19. `--trial-start` selects the initial-state offset; changing the output directory alone does not create new samples. Use a fresh output directory: the script rejects existing run directories. Recalculate the remaining budget before each extension, and retain identical code versions, model files, model paths, and evaluation protocols. Do not replace weights in place and combine the resulting runs.
+Changing the output directory alone does not select new initial states; `--trial-start` controls their numbers. Merge batches only when the checkpoint, code version, and evaluation protocol match and their state numbers do not overlap. The launcher refuses to overwrite an existing output directory.
 
-## Inspect and Combine Results
+## Inspect Jobs, Logs, and Results
 
-Each run directory retains run information, episode records, and summaries for later comparisons with post-trained models under the same conditions.
-
-```text
-evo1-baseline-batch1/
-├── run.json
-├── summary.csv
-├── S1/
-│   ├── console.log
-│   ├── command.json
-│   ├── gpu-memory.csv
-│   ├── episodes.csv
-│   ├── summary.json
-│   └── official_logs/
-└── ...
-```
-
-When enabled, videos are stored within the official log directory. Check completed episode counts and error status before interpreting success rates. A timeout, crash, or incomplete run is not a completed ten-episode experiment. Ten episodes per task support an initial diagnosis, not claims about small differences or cross-task transfer.
-
-Combine two saved batches with:
+Replace the example job ID with the number returned by `sbatch`. `squeue` shows the current status, `tail` follows the Slurm log, and `sacct` shows the final status. `Ctrl+C` exits the log view without stopping the job.
 
 ```bash
-python evaluations/fyp/evaluate.py --report \
-  /srv/fyp/results/evo1-baseline-batch1 \
-  /srv/fyp/results/evo1-baseline-batch2
+FYP_JOB_ID=12345
+squeue -j "$FYP_JOB_ID"
+tail -f "$FYP_STORAGE/results/slurm-eval-$FYP_JOB_ID.log"
+sacct -j "$FYP_JOB_ID" --format=JobID,State,ExitCode,Elapsed
 ```
 
-`--report` reads saved results and prints a combined summary without loading a model or launching simulation. It checks provenance and protocol consistency and rejects duplicate or overlapping trials. The two batches contain at most twenty distinct trials per task. The smoke test's S1 trials 0–1 overlap with the first batch, so exclude its directory from the baseline report. You can also copy `run.json` and each task's `summary.json` and `episodes.csv` to your computer, preserving the directory structure, and run the same reporting command locally.
+Each output directory contains `run.json`, `summary.csv`, and each task's `episodes.csv`, `summary.json`, `console.log`, and `gpu-memory.csv`. Check `status`, completed counts, and initial-state numbers before interpreting a rate. Environment errors, timeouts, and unfinished trajectories must not be counted as ordinary task failures.
 
-## Plan RL After the Baseline
+Inspect the two batch directories used in this project and merge them after both finish:
 
-Use the six-task baseline, failure videos, and observed execution costs to choose training and held-out evaluation tasks before setting a server training budget. Retain the baseline scores, task definitions, and trial ranges for capability-retention comparisons. Later, update the model only on the selected training tasks and evaluate the other tasks with the same protocol.
+```bash
+cat "$FYP_STORAGE/results/evo1-baseline-batch1/summary.csv"
+cat "$FYP_STORAGE/results/evo1-baseline-batch2/summary.csv"
+python evaluations/fyp/evaluate.py --report \
+  "$FYP_STORAGE/results/evo1-baseline-batch1" \
+  "$FYP_STORAGE/results/evo1-baseline-batch2"
+```
 
-Use the [official Evo-1 GRPO configuration](../../examples/embodiment/config/libero_spatial_grpo_evo1.yaml) as the starting point for RL on A, freezing the vision-language backbone and updating the action head. Verify rewards, actual parameter updates, weight synchronization and checkpoint recovery before fixing a budget and repeating with three training seeds. Confirm the checkpoint, task groups, available GPUs, stopping conditions, and evaluation frequency before training. This entry point evaluates the baseline; it does not select A/B/C groups or launch training automatically.
+For other batches, replace the paths with their actual output directories. The report reads saved files without loading a model or starting simulation; it checks provenance and protocol and rejects repeated initial states. Per-episode `success` means the goal was met at least once within 350 steps. `success_at_end` means it remained satisfied at the final step. Ten to twenty fixed initial states per task support screening, not claims about the true success rate or small differences.
+
+To stop your own job, first confirm its ID with `squeue -u "$USER"`, then run `scancel "$FYP_JOB_ID"`. Inspect the saved `run.json` and episode records afterwards and mark unfinished batches as incomplete.
+
+## Synchronize Code and Check Locally
+
+The local project is the independent `RLinf` repository. After editing, inspect changes and stage only the files you intend to commit, for example:
+
+```bash
+cd /home/xyz/code/works/VLA_test/RLinf
+git status --short
+git add evaluations/fyp/README.zh-CN.md evaluations/fyp/README.md
+git commit -s -m "docs(fyp): update evaluation guide"
+git push origin main
+```
+
+Keep server code and models unchanged while a job is running. Once all jobs finish, inspect the server checkout and fast-forward it:
+
+```bash
+cd "$HOME/RLinf"
+squeue -u "$USER"
+git status --short
+git pull --ff-only
+```
+
+Git transfers code. Models, results, personal paths, and SSH keys stay outside the repository. Run local CPU checks with:
+
+```bash
+python3 -m pytest -q \
+  tests/unit_tests/test_fyp_evaluation.py \
+  tests/unit_tests/test_fyp_report.py \
+  tests/unit_tests/test_libero_env.py
+```
+
+These checks do not load the model or run simulation. Once the environment is installed, login does not require rerunning `requirements/install.sh` or downloading models again. Later RL work requires selecting tasks and a training budget from baseline results; the evaluation script does not start training.
+
+## Move or Restore Server Configuration
+
+The current server already has its personal configuration and launcher. On another server, set `FYP_STORAGE`, `FYP_RUNTIME`, `FYP_NODE`, cache paths, and the installed `rlinf-evo1` environment outside the repository. Replace the example paths and node in this template with the new server's values, then save it as `~/.config/fyp/evo1-env.sh`:
+
+```bash
+export FYP_STORAGE='/path/to/fyp'
+export FYP_RUNTIME='/path/to/fyp-runtime'
+export FYP_NODE='your-gpu-node'
+export HF_HOME="$FYP_RUNTIME/cache/huggingface"
+export TORCH_HOME="$FYP_RUNTIME/cache/torch"
+export TORCH_EXTENSIONS_DIR="$FYP_RUNTIME/cache/torch-extensions"
+export UV_CACHE_DIR="$FYP_RUNTIME/cache/uv"
+export PIP_CACHE_DIR="$FYP_RUNTIME/cache/pip"
+export TMPDIR="$FYP_RUNTIME/tmp"
+source "$FYP_RUNTIME/envs/rlinf-evo1/bin/activate"
+```
+
+For a first installation on a new server, set the template's path variables, confirm that an administrator has installed system dependencies, and run the official installer. An existing environment does not need to be reinstalled:
+
+```bash
+cd "$HOME/RLinf"
+mkdir -p "$FYP_RUNTIME/tmp" "$FYP_STORAGE/models" "$FYP_STORAGE/results"
+export PATH="$HOME/.local/bin:$PATH"
+TMPDIR="$FYP_RUNTIME/tmp" UV_PYTHON_INSTALL_DIR="$FYP_RUNTIME/uv-python" \
+  bash requirements/install.sh embodied --model evo1 --env libero \
+  --no-root --use-mirror --venv "$FYP_RUNTIME/envs/rlinf-evo1"
+source "$HOME/.config/fyp/evo1-env.sh"
+```
+
+`--no-root` does not install missing system dependencies. To download missing weights, run the following in your server's personal storage; do not replace model files while a job is running:
+
+```bash
+hf download MINT-SJTU/Evo1_LIBERO --local-dir "$FYP_STORAGE/models/Evo1_LIBERO"
+hf download OpenGVLab/InternVL3-1B --local-dir "$FYP_STORAGE/models/InternVL3-1B"
+```
+
+Confirm that the Evo-1 fork is at `$FYP_RUNTIME/envs/rlinf-evo1/Evo-1`. If the server-local job script is missing, source your configuration and recreate it with:
+
+```bash
+cat > "$FYP_RUNTIME/fyp-eval-job.sh" <<'SCRIPT'
+#!/usr/bin/env bash
+set -euo pipefail
+source "$HOME/.config/fyp/evo1-env.sh"
+export HF_HUB_OFFLINE=1
+export TRANSFORMERS_OFFLINE=1
+export PYTHONUNBUFFERED=1
+cd "$HOME/RLinf"
+python evaluations/fyp/evaluate.py \
+  --model-path "$FYP_STORAGE/models/Evo1_LIBERO" \
+  --evo-repo "$FYP_RUNTIME/envs/rlinf-evo1/Evo-1" \
+  --vlm-path "$FYP_STORAGE/models/InternVL3-1B" \
+  --num-envs 1 --gpu 0 "$@"
+SCRIPT
+chmod 700 "$FYP_RUNTIME/fyp-eval-job.sh"
+```
+
+After moving, check model paths, LIBERO simulator assets, node, and GPU allocation before running the two-episode smoke test. Install environments and download models and assets on the server, following the storage nodes' `user_data` / `public_data` rules.
