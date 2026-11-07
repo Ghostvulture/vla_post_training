@@ -23,3 +23,9 @@ rlinf/envs/sim/maniskill/assets
 PKG-INFO
 *.egg-info/
 .claude/settings.json
+
+# Local FYP assets and machine settings; publish code with Git only.
+/fyp-runs/
+/models/
+/datasets/
+/.fyp-local.env

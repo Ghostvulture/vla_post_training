@@ -4,6 +4,16 @@ This file tells coding agents how to build, test, and change RLinf so that the r
 
 RLinf is a distributed reinforcement learning framework for embodied and agentic AI. A run starts from one entry script that builds a Ray-backed `Cluster`, places the actor, rollout, env, reward, and agent components on hardware, launches each as a `Worker` group, and hands control to a runner that loops through rollout, reward, advantage, and update. Configuration is Hydra YAML. Training uses FSDP or Megatron; LLM rollout uses SGLang or vLLM. User-facing workflows such as installation, placement, multi-node setup, memory tuning, checkpoint resume, metrics, and evaluation are documented under `docs/source-en/rst_source/` (`start/`, `concepts/`, `guides/`, `extending/`, and `resources/faq.rst`).
 
+## FYP workspace workflow
+
+- This independent RLinf clone is the FYP project repository. Do not commit the enclosing `VLA_test` or `works` directory. `upstream` is official RLinf; push project work only to the user's `origin`.
+- Edit and run CPU configuration/log tests locally. Model downloads, model loading, simulation, evaluation and training run on the user's server. See [the two-machine guide](evaluations/fyp/README.zh-CN.md).
+- Version code with Git commits and push/pull. Do not add a separate SHA256 registry. Keep weights, datasets, results, SSH keys and machine settings outside tracked files.
+- Server updates use `git pull --ff-only` between runs. Never update code or overwrite model directories used by an active run. Record the Git commit and installed dependency versions with results.
+- The first milestone is Evo1_LIBERO evaluation through the official RLinf entry point. Use the exact task names and distinct initial states in `evaluations/fyp/`; do not replace incomplete runs with invented scores.
+- The later method is RLinf GRPO with the VLM frozen and action head trainable. Do not run SFT or download demonstration datasets for the baseline. Select A/B/C from measured results before starting RL.
+- SSH, server storage paths, allocated GPU and the user's push destination have not been supplied. Do not guess them or treat dry-run/unit-test success as a server evaluation.
+
 ## Working with a human submitter
 
 - A human submits and answers for every change. Push, open or edit PRs and issues, and post review comments only when the user asks for that action and has seen the content.

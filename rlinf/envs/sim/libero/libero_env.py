@@ -18,6 +18,7 @@ import importlib
 import os
 import re
 import sys
+import time
 from typing import Optional, Union
 
 import gym
@@ -26,6 +27,7 @@ import torch
 from omegaconf.omegaconf import OmegaConf
 
 from rlinf.envs.sim.libero.utils import (
+    build_eval_trial_reset_state_ids,
     build_interleaved_eval_reset_state_ids,
     distribute_reset_state_ids_round_robin,
     get_benchmark_overridden,
@@ -153,6 +155,15 @@ class LiberoEnv(gym.Env):
         self.ignore_terminations = cfg.ignore_terminations
         self.auto_reset = cfg.auto_reset
         self.is_eval = cfg.get("is_eval", False)
+        self.eval_trial_ids = cfg.get("eval_trial_ids", None)
+        if self.eval_trial_ids is not None:
+            if not self.is_eval:
+                raise ValueError("eval_trial_ids requires is_eval=True")
+            if self.specific_reset_id is not None:
+                raise ValueError(
+                    "eval_trial_ids requires specific_reset_id=None, "
+                    f"got {self.specific_reset_id}"
+                )
 
         self._generator = np.random.default_rng(seed=self.seed)
         self._generator_ordered = np.random.default_rng(seed=0)
@@ -509,6 +520,16 @@ class LiberoEnv(gym.Env):
         else:
             self._valid_reset_state_ids = None
 
+        if self.eval_trial_ids is not None:
+            selected_task_ids = (
+                validated_tids
+                if self.task_id_filter is not None
+                else list(range(len(self.trial_id_bins)))
+            )
+            self._valid_reset_state_ids = build_eval_trial_reset_state_ids(
+                self.trial_id_bins, selected_task_ids, self.eval_trial_ids
+            )
+
     def update_reset_state_ids(self):
         if self.is_eval or self.cfg.use_ordered_reset_state_ids:
             reset_state_ids = self._get_ordered_reset_state_ids(self.num_group)
@@ -709,6 +730,7 @@ class LiberoEnv(gym.Env):
         self.success_episode_len = np.zeros(self.num_envs, dtype=np.int32)
         self._task_success_stats: dict[int, dict[str, int]] = {}
         self._eval_seen_trials: set[tuple[int, int]] = set()
+        self._episode_start_times = np.full(self.num_envs, np.nan)
 
     def _reset_metrics(self, env_idx=None):
         if env_idx is not None:
@@ -863,6 +885,9 @@ class LiberoEnv(gym.Env):
 
         obs = self._wrap_obs(self.current_raw_obs)
         self._reset_metrics(env_idx)
+        if self.is_eval:
+            # Wall time includes shared rollout/inference waits after reset.
+            self._episode_start_times[env_idx] = time.monotonic()
         infos = {}
         return obs, infos
 
@@ -1041,6 +1066,7 @@ class LiberoEnv(gym.Env):
         return obs, infos, None
 
     def _handle_eval_auto_reset(self, dones, _final_obs, infos):
+        completed_at = time.monotonic()
         final_obs = copy.deepcopy(_final_obs)
         env_idx = np.arange(0, self.num_envs)[dones]
         final_info = copy.deepcopy(infos)
@@ -1053,6 +1079,7 @@ class LiberoEnv(gym.Env):
             self.num_envs,
             self._eval_seen_trials,
             self._task_success_stats,
+            elapsed_seconds=completed_at - self._episode_start_times,
         )
 
         new_reset_state_ids = self._get_ordered_reset_state_ids(len(env_idx))

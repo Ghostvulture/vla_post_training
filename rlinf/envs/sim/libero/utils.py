@@ -16,7 +16,7 @@
 
 import math
 import os
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 import numpy as np
 import torch
@@ -215,6 +215,54 @@ def distribute_reset_state_ids_round_robin(
     return distributed
 
 
+def build_eval_trial_reset_state_ids(
+    trial_id_bins: list[int],
+    task_ids: list[int],
+    eval_trial_ids: list[int],
+) -> np.ndarray:
+    """Select the same unique trial IDs for each task before rank distribution.
+
+    Trial IDs are local to a task and must exist in every selected task. The
+    returned global reset IDs preserve task order and requested trial order.
+    """
+    try:
+        trial_ids = list(eval_trial_ids)
+    except TypeError as exc:
+        raise ValueError("eval_trial_ids must be a non-empty list of integers") from exc
+    if not trial_ids:
+        raise ValueError("eval_trial_ids must be a non-empty list of integers")
+    for trial_id in trial_ids:
+        if isinstance(trial_id, (bool, np.bool_)) or not isinstance(
+            trial_id, (int, np.integer)
+        ):
+            raise ValueError(
+                "eval_trial_ids must contain non-negative integers, "
+                f"got {type(trial_id).__name__}: {trial_id}"
+            )
+        if trial_id < 0:
+            raise ValueError(
+                f"eval_trial_ids must contain non-negative integers, got {trial_id}"
+            )
+    if len(set(trial_ids)) != len(trial_ids):
+        raise ValueError(
+            f"eval_trial_ids must contain unique integers, got {trial_ids}"
+        )
+    if not task_ids:
+        raise ValueError("eval_trial_ids requires at least one selected task")
+
+    offsets = np.concatenate(([0], np.cumsum(trial_id_bins)))
+    reset_state_ids = []
+    for task_id in task_ids:
+        for trial_id in trial_ids:
+            if trial_id >= trial_id_bins[task_id]:
+                raise ValueError(
+                    f"trial_id {trial_id} in eval_trial_ids is out of range for "
+                    f"task_id {task_id}: expected [0, {trial_id_bins[task_id] - 1}]"
+                )
+            reset_state_ids.append(offsets[task_id] + trial_id)
+    return np.asarray(reset_state_ids, dtype=np.int64)
+
+
 def record_completed_episode_task_stats(
     env_idx: np.ndarray,
     final_info: dict,
@@ -224,6 +272,8 @@ def record_completed_episode_task_stats(
     eval_seen_trials: set[tuple[int, int]],
     task_success_stats: dict[int, dict[str, int]],
     logger=None,
+    *,
+    elapsed_seconds: Optional[np.ndarray] = None,
 ) -> np.ndarray:
     """Record per-task eval stats and return which envs count toward metrics.
 
@@ -261,5 +311,19 @@ def record_completed_episode_task_stats(
             task_success_stats[tid] = {"success": 0, "total": 0}
         task_success_stats[tid]["total"] += 1
         task_success_stats[tid]["success"] += int(ok)
-        logger.info(f"[libero eval] task_id={tid}, trial_id={trial_id}, success={ok}")
+        episode_len = (
+            int(episode["episode_len"][eid]) if "episode_len" in episode else "null"
+        )
+        elapsed = (
+            f"{elapsed_seconds[eid]:.6f}"
+            if elapsed_seconds is not None and np.isfinite(elapsed_seconds[eid])
+            else "null"
+        )
+        message = (
+            f"[libero eval] task_id={tid}, trial_id={trial_id}, success={ok}, "
+            f"episode_len={episode_len}, elapsed_seconds={elapsed}"
+        )
+        if "success_at_end" in episode:
+            message += f", success_at_end={bool(episode['success_at_end'][eid])}"
+        logger.info(message)
     return count_mask

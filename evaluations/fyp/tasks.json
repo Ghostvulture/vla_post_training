@@ -1,0 +1,8 @@
+[
+  {"key": "S1", "suite": "libero_spatial", "name": "pick_up_the_black_bowl_from_table_center_and_place_it_on_the_plate", "label": "桌面中央黑碗放到盘子上"},
+  {"key": "S2", "suite": "libero_spatial", "name": "pick_up_the_black_bowl_next_to_the_cookie_box_and_place_it_on_the_plate", "label": "饼干盒旁黑碗放到盘子上"},
+  {"key": "O1", "suite": "libero_object", "name": "pick_up_the_alphabet_soup_and_place_it_in_the_basket", "label": "alphabet soup 放进篮子"},
+  {"key": "O2", "suite": "libero_object", "name": "pick_up_the_cream_cheese_and_place_it_in_the_basket", "label": "cream cheese 放进篮子"},
+  {"key": "G1", "suite": "libero_goal", "name": "open_the_middle_drawer_of_the_cabinet", "label": "打开中间抽屉"},
+  {"key": "G2", "suite": "libero_goal", "name": "push_the_plate_to_the_front_of_the_stove", "label": "将盘子推到炉子前方"}
+]
