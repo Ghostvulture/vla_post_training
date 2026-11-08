@@ -32,7 +32,7 @@ squeue -u "$USER"
 
 `FYP_STORAGE` holds models and results; `FYP_RUNTIME` holds the environment and caches. Inspect their configured paths with `cat "$HOME/.config/fyp/evo1-env.sh"`. `FYP_SLURM` requests one 4090, eight CPUs, and a 100-minute limit. `squeue` shows your jobs. If submission reports `AssocMaxSubmitJobLimit`, wait for an existing job to finish before submitting another. Adapt the array to your cluster's allocation rules when they change.
 
-The server-local launcher is `$FYP_RUNTIME/fyp-eval-job.sh`. It loads the same environment inside the job, reads the existing models offline, and calls this project's [evaluation entry point](evaluate.py). Each `--budget-minutes` below limits one evaluation and must leave time for startup and cleanup within Slurm's `--time`.
+The server-local launcher is `$FYP_RUNTIME/fyp-eval-job.sh`. It loads the same environment inside the job, reads the existing models offline, and calls this project's [evaluation entry point](evaluate.py). The job stores temporary files under the node's `/tmp` to keep Ray socket paths short; models, caches, and results remain in personal storage. Each `--budget-minutes` below limits one evaluation and must leave time for startup and cleanup within Slurm's `--time`.
 
 ## Submit Evaluation
 
@@ -189,6 +189,7 @@ cat > "$FYP_RUNTIME/fyp-eval-job.sh" <<'SCRIPT'
 #!/usr/bin/env bash
 set -euo pipefail
 source "$HOME/.config/fyp/evo1-env.sh"
+export TMPDIR=/tmp
 export HF_HUB_OFFLINE=1
 export TRANSFORMERS_OFFLINE=1
 export PYTHONUNBUFFERED=1

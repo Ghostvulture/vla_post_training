@@ -32,7 +32,7 @@ squeue -u "$USER"
 
 `FYP_STORAGE` 保存模型和结果，`FYP_RUNTIME` 保存环境与缓存；个人配置文件中的具体路径可用 `cat "$HOME/.config/fyp/evo1-env.sh"` 查看。`FYP_SLURM` 申请一张 4090 和 8 个 CPU，最长运行 100 分钟。`squeue` 显示当前账户的作业；若提交时出现 `AssocMaxSubmitJobLimit`，等待已有作业结束后再提交。服务器分配规则变化时，先根据集群规定调整该数组。
 
-评估启动脚本是仓库外的 `$FYP_RUNTIME/fyp-eval-job.sh`。它会在作业内加载同一个环境，以离线方式读取服务器已有模型，再调用本项目的 [评估入口](evaluate.py)。下文的 `--budget-minutes` 是单次评估的时间上限，需要短于 Slurm 的 `--time` 并留出启动和清理时间。
+评估启动脚本是仓库外的 `$FYP_RUNTIME/fyp-eval-job.sh`。它会在作业内加载同一个环境，以离线方式读取服务器已有模型，再调用本项目的 [评估入口](evaluate.py)。作业内使用节点的 `/tmp` 存放临时文件，避免 Ray 的 socket 路径过长；模型、缓存和结果仍保存在用户数据目录。下文的 `--budget-minutes` 是单次评估的时间上限，需要短于 Slurm 的 `--time` 并留出启动和清理时间。
 
 ## 提交评估
 
@@ -189,6 +189,7 @@ cat > "$FYP_RUNTIME/fyp-eval-job.sh" <<'SCRIPT'
 #!/usr/bin/env bash
 set -euo pipefail
 source "$HOME/.config/fyp/evo1-env.sh"
+export TMPDIR=/tmp
 export HF_HUB_OFFLINE=1
 export TRANSFORMERS_OFFLINE=1
 export PYTHONUNBUFFERED=1
