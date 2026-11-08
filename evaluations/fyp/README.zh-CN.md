@@ -75,6 +75,8 @@ sbatch "${FYP_SLURM[@]}" "$FYP_RUNTIME/fyp-eval-job.sh" \
 
 如果只需要指定任务，可以在同一命令中加入 `--tasks S1 S2`，输出目录仍需使用新名称。评估沿用 [Evo-1 配置](../libero/libero_spatial_evo1_eval.yaml) 的 448×448 图像、14 步动作块和每集 350 仿真步，使用 `libero_robot` 归一化 key。模型、代码版本或评估配置变化后，应单独记录并重新核对可比性。
 
+扩展候选任务的标签为 `SG1 SG3 SG6 SG7 SS4 SS7`，具体目标见 [tasks.json](tasks.json)。筛查这些任务时，将命令改为 `--tasks SG1 SG3 SG6 SG7 SS4 SS7 --episodes 5 --trial-start 0`；如需补测 5 个不同状态，使用新的输出目录和 `--trial-start 5`。省略 `--tasks` 仍只运行上表中的六个原始基线任务。
+
 时间允许时，等第一批完成后再提交状态 10–19：
 
 ```bash

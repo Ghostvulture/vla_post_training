@@ -75,6 +75,8 @@ sbatch "${FYP_SLURM[@]}" "$FYP_RUNTIME/fyp-eval-job.sh" \
 
 To restrict a run, add `--tasks S1 S2` and use a fresh output directory. Evaluation retains the [Evo-1 configuration](../libero/libero_spatial_evo1_eval.yaml): 448×448 images, 14-step action chunks, 350 simulation steps per episode, and the `libero_robot` normalization key. Record changes to the model, code version, or evaluation settings and reassess comparability.
 
+The additional screening labels are `SG1 SG3 SG6 SG7 SS4 SS7`; their task goals are in [tasks.json](tasks.json). To screen them, use `--tasks SG1 SG3 SG6 SG7 SS4 SS7 --episodes 5 --trial-start 0`. To add five different states, use a new output directory and `--trial-start 5`. Omitting `--tasks` still runs only the six original baseline tasks in the table.
+
 If time permits, wait for the first batch to finish and submit states 10–19:
 
 ```bash
