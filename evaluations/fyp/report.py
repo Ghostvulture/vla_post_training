@@ -252,7 +252,7 @@ def summarize_runs(roots: list[Path]) -> list[dict]:
             or planned/observed trials overlap. Failed runs retain their status.
     """
     metadata_reference = None
-    groups: dict[tuple[str, str], dict[str, Any]] = {}
+    groups: dict[tuple[str, str, str], dict[str, Any]] = {}
     for root in roots:
         root = Path(root)
         metadata = _read_json(root / "run.json")
@@ -276,7 +276,7 @@ def summarize_runs(roots: list[Path]) -> list[dict]:
             task = {key: report[key] for key in _TASK_FIELDS}
             expected = _trial_ids(report.get("expected_trials"))
             rows = _read_episodes(path.with_name("episodes.csv"), task)
-            group_key = (task["suite"], task["name"])
+            group_key = (task["suite"], task["name"], task["key"])
             group = groups.setdefault(
                 group_key,
                 {

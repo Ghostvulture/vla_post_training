@@ -1,14 +1,116 @@
 [
-  {"key": "S1", "suite": "libero_spatial", "name": "pick_up_the_black_bowl_from_table_center_and_place_it_on_the_plate", "label": "桌面中央黑碗放到盘子上"},
-  {"key": "S2", "suite": "libero_spatial", "name": "pick_up_the_black_bowl_next_to_the_cookie_box_and_place_it_on_the_plate", "label": "饼干盒旁黑碗放到盘子上"},
-  {"key": "O1", "suite": "libero_object", "name": "pick_up_the_alphabet_soup_and_place_it_in_the_basket", "label": "alphabet soup 放进篮子"},
-  {"key": "O2", "suite": "libero_object", "name": "pick_up_the_cream_cheese_and_place_it_in_the_basket", "label": "cream cheese 放进篮子"},
-  {"key": "G1", "suite": "libero_goal", "name": "open_the_middle_drawer_of_the_cabinet", "label": "打开中间抽屉"},
-  {"key": "G2", "suite": "libero_goal", "name": "push_the_plate_to_the_front_of_the_stove", "label": "将盘子推到炉子前方"},
-  {"key": "SG1", "suite": "libero_goal", "name": "put_the_bowl_on_the_stove", "label": "把碗放到炉灶上"},
-  {"key": "SG3", "suite": "libero_goal", "name": "open_the_top_drawer_and_put_the_bowl_inside", "label": "打开上层抽屉并把碗放进去"},
-  {"key": "SG6", "suite": "libero_goal", "name": "put_the_cream_cheese_in_the_bowl", "label": "把奶油奶酪放进碗里"},
-  {"key": "SG7", "suite": "libero_goal", "name": "turn_on_the_stove", "label": "打开炉灶"},
-  {"key": "SS4", "suite": "libero_spatial", "name": "pick_up_the_black_bowl_in_the_top_drawer_of_the_wooden_cabinet_and_place_it_on_the_plate", "label": "从上层抽屉取出黑碗并放到盘子上"},
-  {"key": "SS7", "suite": "libero_spatial", "name": "pick_up_the_black_bowl_on_the_stove_and_place_it_on_the_plate", "label": "从炉灶上取黑碗并放到盘子上"}
+  {
+    "key": "S1",
+    "suite": "libero_spatial",
+    "name": "pick_up_the_black_bowl_from_table_center_and_place_it_on_the_plate",
+    "label": "桌面中央黑碗放到盘子上"
+  },
+  {
+    "key": "S2",
+    "suite": "libero_spatial",
+    "name": "pick_up_the_black_bowl_next_to_the_cookie_box_and_place_it_on_the_plate",
+    "label": "饼干盒旁黑碗放到盘子上"
+  },
+  {
+    "key": "O1",
+    "suite": "libero_object",
+    "name": "pick_up_the_alphabet_soup_and_place_it_in_the_basket",
+    "label": "alphabet soup 放进篮子"
+  },
+  {
+    "key": "O2",
+    "suite": "libero_object",
+    "name": "pick_up_the_cream_cheese_and_place_it_in_the_basket",
+    "label": "cream cheese 放进篮子"
+  },
+  {
+    "key": "G1",
+    "suite": "libero_goal",
+    "name": "open_the_middle_drawer_of_the_cabinet",
+    "label": "打开中间抽屉"
+  },
+  {
+    "key": "G2",
+    "suite": "libero_goal",
+    "name": "push_the_plate_to_the_front_of_the_stove",
+    "label": "将盘子推到炉子前方"
+  },
+  {
+    "key": "SG1",
+    "suite": "libero_goal",
+    "name": "put_the_bowl_on_the_stove",
+    "label": "把碗放到炉灶上"
+  },
+  {
+    "key": "SG3",
+    "suite": "libero_goal",
+    "name": "open_the_top_drawer_and_put_the_bowl_inside",
+    "label": "打开上层抽屉并把碗放进去"
+  },
+  {
+    "key": "SG6",
+    "suite": "libero_goal",
+    "name": "put_the_cream_cheese_in_the_bowl",
+    "label": "把奶油奶酪放进碗里"
+  },
+  {
+    "key": "SG7",
+    "suite": "libero_goal",
+    "name": "turn_on_the_stove",
+    "label": "打开炉灶"
+  },
+  {
+    "key": "SS4",
+    "suite": "libero_spatial",
+    "name": "pick_up_the_black_bowl_in_the_top_drawer_of_the_wooden_cabinet_and_place_it_on_the_plate",
+    "label": "从上层抽屉取出黑碗并放到盘子上"
+  },
+  {
+    "key": "SS7",
+    "suite": "libero_spatial",
+    "name": "pick_up_the_black_bowl_on_the_stove_and_place_it_on_the_plate",
+    "label": "从炉灶上取黑碗并放到盘子上"
+  },
+  {
+    "key": "B1B",
+    "suite": "libero_goal",
+    "name": "put_the_cream_cheese_in_the_bowl",
+    "label": "butter to bowl",
+    "variant": "B1B"
+  },
+  {
+    "key": "B1A",
+    "suite": "libero_goal",
+    "name": "put_the_cream_cheese_in_the_bowl",
+    "label": "alphabet soup to bowl",
+    "variant": "B1A"
+  },
+  {
+    "key": "B1T",
+    "suite": "libero_goal",
+    "name": "put_the_cream_cheese_in_the_bowl",
+    "label": "tomato sauce to bowl",
+    "variant": "B1T"
+  },
+  {
+    "key": "B2P",
+    "suite": "libero_goal",
+    "name": "put_the_cream_cheese_in_the_bowl",
+    "label": "cream cheese to plate",
+    "variant": "B2P"
+  },
+  {
+    "key": "B2W",
+    "suite": "libero_goal",
+    "name": "put_the_cream_cheese_in_the_bowl",
+    "label": "cream cheese to wooden tray",
+    "variant": "B2W"
+  },
+  {
+    "key": "B2B",
+    "suite": "libero_goal",
+    "name": "put_the_cream_cheese_in_the_bowl",
+    "label": "cream cheese to basket",
+    "variant": "B2B"
+  }
 ]

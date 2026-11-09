@@ -206,3 +206,20 @@ chmod 700 "$FYP_RUNTIME/fyp-eval-job.sh"
 ```
 
 迁移后先检查模型路径、LIBERO 仿真 assets、节点和 GPU 分配，再跑两集 smoke test。模型与 assets 下载、环境安装应在服务器执行，并遵守存储节点的 `user_data` / `public_data` 规则。
+
+## 近任务迁移试验：训练前筛选
+
+本轮预算为训练 48 GPU 小时（最多两卡）及评估 8 GPU 小时（单卡）。先筛选 SG6 场景的六个目标变体：B1B/B1A/B1T 将 cream cheese 换成 butter/alphabet soup/tomato sauce；B2P 改为放到已有盘子；B2W/B2B 将碗换为托盘/篮子。物体替换会改变几何；新状态来自固定种子的环境 reset，不能称为原任务的相同物理状态。生成器记录初始化成功与接触检查，失败变体不能进入评分。视觉和训练布局扩展只在筛选通过后实施。
+
+在已分配 GPU 的 Slurm 作业内运行以下生成命令；目录必须不存在。生成状态不加载 VLA。然后按前文单卡 sbatch 流程调用评估启动脚本，增加下面的参数：
+
+```bash
+python evaluations/fyp/prepare_variants.py \
+  --output-dir "$FYP_STORAGE/variants/sg6-transfer-v1"
+```
+
+```bash
+--tasks B1B B1A B1T B2P B2W B2B \
+--variant-root "$FYP_STORAGE/variants/sg6-transfer-v1" \
+--episodes 10 --trial-start 0
+```

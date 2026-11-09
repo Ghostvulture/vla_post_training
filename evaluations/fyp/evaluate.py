@@ -61,6 +61,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=10,
         help="Distinct initialization states per task",
     )
+    parser.add_argument("--variant-root", type=Path, help="Server-generated immutable task variants")
     parser.add_argument("--trial-start", type=int, default=0)
     parser.add_argument("--num-envs", type=int, default=1, choices=[1, 2, 4])
     parser.add_argument(
@@ -111,7 +112,7 @@ def build_command(
 ) -> list[str]:
     """Keep the official model, action, camera and horizon configuration."""
     output = args.output_dir / task["key"] / "official_logs"
-    return [
+    command = [
         "bash",
         str(ROOT / "evaluations/run_eval.sh"),
         "libero",
@@ -134,6 +135,15 @@ def build_command(
         f"runner.logger.log_path={json.dumps(str(output))}",
         f"runner.logger.experiment_name=fyp_{task['key']}",
     ]
+    if task.get("variant"):
+        if args.variant_root is None:
+            raise ValueError("Variant tasks require --variant-root")
+        root = args.variant_root.resolve() / task["variant"]
+        command.extend([
+            f"+env.eval.task_bddl_override={json.dumps(str(root / 'task.bddl'))}",
+            f"+env.eval.task_init_states_override={json.dumps(str(root / 'states.pt'))}",
+        ])
+    return command
 
 
 def git_revision(path: Path) -> str:
@@ -379,6 +389,17 @@ def main(argv: list[str] | None = None) -> int:
     check_assets(args)
     sampled_gpu = physical_gpu(args.gpu)
     tasks, libero_path = resolve_tasks(tasks, trials)
+    if any(task.get("variant") for task in tasks):
+        if args.variant_root is None:
+            raise ValueError("Variant tasks require --variant-root")
+        for task in tasks:
+            if task.get("variant"):
+                folder = args.variant_root.resolve() / task["variant"]
+                validation = json.loads((folder / "validation.json").read_text())
+                if not validation.get("valid"):
+                    raise ValueError(f"Variant has not passed validation: {folder}")
+                task["variant_root"] = str(args.variant_root.resolve())
+                task["variant_validation"] = validation
     args.output_dir.mkdir(parents=True)
     metadata = {
         "git_commit": git_revision(ROOT),
@@ -388,7 +409,7 @@ def main(argv: list[str] | None = None) -> int:
         "evo_git_commit": git_revision(args.evo_repo),
         "libero_version": importlib.metadata.version("rlinf-libero"),
         "libero_package_path": str(libero_path),
-        "protocol": {**PROTOCOL, "num_envs": args.num_envs},
+        "protocol": {**PROTOCOL, "num_envs": args.num_envs, "variant_root": str(args.variant_root.resolve()) if args.variant_root else None},
         "tasks": tasks,
         "trial_ids": trials,
         "budget_minutes": args.budget_minutes,

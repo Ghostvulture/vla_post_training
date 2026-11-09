@@ -75,7 +75,7 @@ def test_dry_run_needs_no_assets_and_writes_nothing(tmp_path, caplog):
 def test_commands_compose_with_official_hydra_config(tmp_path, monkeypatch):
     hydra = pytest.importorskip("hydra")
     monkeypatch.setenv("EMBODIED_PATH", str(ROOT / "examples/embodiment"))
-    args = parse_args(arguments(tmp_path, "--gpu", "2", "--num-envs", "2"))
+    args = parse_args(arguments(tmp_path, "--gpu", "2", "--num-envs", "2", "--variant-root", str(tmp_path / "variants")))
     tasks = json.loads(MANIFEST.read_text())
     for task in tasks:
         command = build_command(args, {**task, "task_id": 3}, list(range(10, 20)))
@@ -146,3 +146,28 @@ def test_expired_budget_stops_only_own_child(tmp_path):
     )
     assert code != 0
     assert error == "Evaluation time budget exhausted"
+
+
+def test_variants_require_explicit_asset_root(tmp_path):
+    args = parse_args(arguments(tmp_path, "--tasks", "B1B"))
+    task = {"key": "B1B", "suite": "libero_goal", "task_id": 6, "variant": "B1B"}
+    with pytest.raises(ValueError, match="variant-root"):
+        build_command(args, task, [0])
+    args.variant_root = tmp_path / "variants"
+    command = build_command(args, task, [0])
+    assert any("B1B/task.bddl" in item for item in command)
+    assert any("B1B/states.pt" in item for item in command)
+
+
+def test_variant_changes_preserve_unrelated_scene_objects():
+    from evaluations.fyp.prepare_variants import variant_bddl
+    source = "(:language Put the cream cheese on the bowl)\ncream_cheese_1 - cream_cheese\nplate_1 - plate\nwine_bottle_1 - wine_bottle\n(:goal (And (On cream_cheese_1 akita_black_bowl_1)))"
+    changed = variant_bddl(source, "B1B")
+    assert "butter_1 - butter" in changed
+    assert "(On butter_1 akita_black_bowl_1)" in changed
+    assert "wine_bottle_1 - wine_bottle" in changed
+    changed = variant_bddl(source, "B2P")
+    assert "(On cream_cheese_1 plate_1)" in changed
+    assert "cream_cheese_1 - cream_cheese" in changed
+    with pytest.raises(ValueError):
+        variant_bddl(source, "unknown")

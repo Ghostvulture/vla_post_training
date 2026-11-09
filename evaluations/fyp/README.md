@@ -206,3 +206,20 @@ chmod 700 "$FYP_RUNTIME/fyp-eval-job.sh"
 ```
 
 After moving, check model paths, LIBERO simulator assets, node, and GPU allocation before running the two-episode smoke test. Install environments and download models and assets on the server, following the storage nodes' `user_data` / `public_data` rules.
+
+## Near-task transfer: screening before training
+
+The pilot is capped at 48 training GPU-hours (at most two GPUs) and 8 evaluation GPU-hours (one GPU). Six SG6 scene variants change the target: B1B/B1A/B1T replace cream cheese with butter/alphabet soup/tomato sauce; B2P uses the existing plate; B2W/B2B replace the bowl with a wooden tray/basket. Replacement changes geometry. States come from seeded environment resets, not the original task's identical physical states. Generation records initial-success and contact checks; invalid variants cannot be scored. Visual variants and training layout extensions follow only if screening passes.
+
+Run generation within an allocated Slurm GPU job; the output directory must not exist. It does not load a VLA. Then use the single-GPU sbatch evaluation launcher above with the following additional arguments:
+
+```bash
+python evaluations/fyp/prepare_variants.py \
+  --output-dir "$FYP_STORAGE/variants/sg6-transfer-v1"
+```
+
+```bash
+--tasks B1B B1A B1T B2P B2W B2B \
+--variant-root "$FYP_STORAGE/variants/sg6-transfer-v1" \
+--episodes 10 --trial-start 0
+```

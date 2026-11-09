@@ -165,6 +165,19 @@ class LiberoEnv(gym.Env):
                     f"got {self.specific_reset_id}"
                 )
 
+        self.train_trial_ids = cfg.get("train_trial_ids", None)
+        if self.train_trial_ids is not None and (self.is_eval or self.specific_reset_id is not None):
+            raise ValueError("train_trial_ids requires training and specific_reset_id=None")
+        self.task_bddl_override = cfg.get("task_bddl_override", None)
+        self.task_init_states_override = cfg.get("task_init_states_override", None)
+        if bool(self.task_bddl_override) != bool(self.task_init_states_override):
+            raise ValueError("BDDL and initialization overrides must be supplied together")
+        self._override_states = None
+        if self.task_bddl_override:
+            if libero_type != "standard" or self.task_id_filter is None or len(self.task_id_filter) != 1:
+                raise ValueError("Task overrides require one standard LIBERO task")
+            self._override_states = torch.load(self.task_init_states_override, weights_only=False)
+
         self._generator = np.random.default_rng(seed=self.seed)
         self._generator_ordered = np.random.default_rng(seed=0)
         self.start_idx = 0
@@ -450,6 +463,9 @@ class LiberoEnv(gym.Env):
                         else:
                             final_path = self._generator.choice(all_candidates)
 
+            if self.task_bddl_override:
+                final_path = self.task_bddl_override
+
             env_fn_params.append(
                 {
                     **base_env_args,
@@ -461,7 +477,7 @@ class LiberoEnv(gym.Env):
             # and remember the perturbation folder for pruned_init loading.
             pert_folder = os.path.basename(os.path.dirname(os.path.abspath(final_path)))
             pert_init_folders.append(pert_folder)
-            if variant == "pro":
+            if variant == "pro" or self.task_bddl_override:
                 bddl_lang, bddl_goal = _read_bddl_language_and_goal(final_path)
                 desc = bddl_lang if bddl_lang else task.language
                 task_descriptions.append(desc)
@@ -488,7 +504,7 @@ class LiberoEnv(gym.Env):
         self.total_num_group_envs = 0
         self.trial_id_bins = []
         for task_id in range(self.task_suite.get_num_tasks()):
-            task_num_trials = len(self.task_suite.get_task_init_states(task_id))
+            task_num_trials = len(self._override_states) if self._override_states is not None else len(self.task_suite.get_task_init_states(task_id))
             self.trial_id_bins.append(task_num_trials)
             self.total_num_group_envs += task_num_trials
         self.cumsum_trial_id_bins = np.cumsum(self.trial_id_bins)
@@ -520,14 +536,15 @@ class LiberoEnv(gym.Env):
         else:
             self._valid_reset_state_ids = None
 
-        if self.eval_trial_ids is not None:
+        selected_trials = self.eval_trial_ids if self.is_eval else self.train_trial_ids
+        if selected_trials is not None:
             selected_task_ids = (
                 validated_tids
                 if self.task_id_filter is not None
                 else list(range(len(self.trial_id_bins)))
             )
             self._valid_reset_state_ids = build_eval_trial_reset_state_ids(
-                self.trial_id_bins, selected_task_ids, self.eval_trial_ids
+                self.trial_id_bins, selected_task_ids, selected_trials
             )
 
     def update_reset_state_ids(self):
@@ -698,6 +715,9 @@ class LiberoEnv(gym.Env):
                         len(states),
                     )
             return init_state
+
+        if self._override_states is not None:
+            return [self._override_states[self.trial_ids[eid]] for eid in env_idx]
 
         init_state = [
             self.task_suite.get_task_init_states(self.task_ids[env_id])[
