@@ -406,3 +406,11 @@ The JSON report records finite outputs, latency and peak GPU memory. Synthetic i
 Slurm job 19492 passed the synthetic inference check using commit `31005946`: 3,353,433,872 parameters, output shape `[1, 50, 32]`, all finite, and zero maximum difference between two passes with fixed noise. The first and second passes took 0.717 and 0.310 seconds. Peak allocated/reserved GPU memory was 6.649/6.805 GiB on one RTX 4090. These measurements exclude simulation and prompt tokenization and do not establish RL training memory requirements. No LIBERO episodes have run for this checkpoint.
 
 The next evaluation requires an explicit normalization protocol. The downloaded base assets have no LIBERO statistics; the copied Franka statistics are not validated for LIBERO. Using public LIBERO statistics would be target-domain interface calibration, even with unchanged base weights, and must be reported separately from a claim of no LIBERO data exposure. Calibration alone would not prove correct control semantics.
+
+The user-approved next protocol is unchanged base weights with public LIBERO interface calibration. Prepare preprocessing dependencies and only the official 1.9 KB statistics file (no fine-tuned weights or demonstrations):
+
+```bash
+source "$HOME/.config/fyp/evo1-env.sh"
+cd "$HOME/RLinf"
+bash evaluations/fyp/prepare_pi05_calibration.sh
+```
