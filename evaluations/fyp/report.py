@@ -345,3 +345,28 @@ def write_summary(path: Path, rows: list[dict]) -> None:
             for key in ("expected_trials", "completed_trials"):
                 rendered[key] = json.dumps(row[key])
             writer.writerow(rendered)
+
+
+def select_transfer_candidates(reports: list[dict]) -> dict:
+    """Require one usable object variant and one usable receptacle variant."""
+    selected = {}
+    for family in ("B1", "B2"):
+        eligible = [
+            row
+            for row in reports
+            if row["task"]["key"].startswith(family)
+            and row["status"] == "complete"
+            and row["num_completed"] == 10
+            and 2 <= row["successes"] <= 8
+        ]
+        eligible.sort(key=lambda row: (abs(row["successes"] - 5), row["task"]["key"]))
+        if eligible:
+            selected[family] = eligible[0]["task"]["key"]
+    return {
+        "passed": len(selected) == 2,
+        "selected": selected,
+        "rule": "One B1 and one B2, each complete with 2..8 successes out of 10; nearest to 5 wins, then task key",
+        "next_action": "training_smoke"
+        if len(selected) == 2
+        else "stop_before_training",
+    }

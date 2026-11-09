@@ -75,7 +75,17 @@ def test_dry_run_needs_no_assets_and_writes_nothing(tmp_path, caplog):
 def test_commands_compose_with_official_hydra_config(tmp_path, monkeypatch):
     hydra = pytest.importorskip("hydra")
     monkeypatch.setenv("EMBODIED_PATH", str(ROOT / "examples/embodiment"))
-    args = parse_args(arguments(tmp_path, "--gpu", "2", "--num-envs", "2", "--variant-root", str(tmp_path / "variants")))
+    args = parse_args(
+        arguments(
+            tmp_path,
+            "--gpu",
+            "2",
+            "--num-envs",
+            "2",
+            "--variant-root",
+            str(tmp_path / "variants"),
+        )
+    )
     tasks = json.loads(MANIFEST.read_text())
     for task in tasks:
         command = build_command(args, {**task, "task_id": 3}, list(range(10, 20)))
@@ -161,6 +171,7 @@ def test_variants_require_explicit_asset_root(tmp_path):
 
 def test_variant_changes_preserve_unrelated_scene_objects():
     from evaluations.fyp.prepare_variants import variant_bddl
+
     source = "(:language Put the cream cheese on the bowl)\ncream_cheese_1 - cream_cheese\nplate_1 - plate\nwine_bottle_1 - wine_bottle\n(:goal (And (On cream_cheese_1 akita_black_bowl_1)))"
     changed = variant_bddl(source, "B1B")
     assert "butter_1 - butter" in changed

@@ -166,17 +166,29 @@ class LiberoEnv(gym.Env):
                 )
 
         self.train_trial_ids = cfg.get("train_trial_ids", None)
-        if self.train_trial_ids is not None and (self.is_eval or self.specific_reset_id is not None):
-            raise ValueError("train_trial_ids requires training and specific_reset_id=None")
+        if self.train_trial_ids is not None and (
+            self.is_eval or self.specific_reset_id is not None
+        ):
+            raise ValueError(
+                "train_trial_ids requires training and specific_reset_id=None"
+            )
         self.task_bddl_override = cfg.get("task_bddl_override", None)
         self.task_init_states_override = cfg.get("task_init_states_override", None)
         if bool(self.task_bddl_override) != bool(self.task_init_states_override):
-            raise ValueError("BDDL and initialization overrides must be supplied together")
+            raise ValueError(
+                "BDDL and initialization overrides must be supplied together"
+            )
         self._override_states = None
         if self.task_bddl_override:
-            if libero_type != "standard" or self.task_id_filter is None or len(self.task_id_filter) != 1:
+            if (
+                libero_type != "standard"
+                or self.task_id_filter is None
+                or len(self.task_id_filter) != 1
+            ):
                 raise ValueError("Task overrides require one standard LIBERO task")
-            self._override_states = torch.load(self.task_init_states_override, weights_only=False)
+            self._override_states = torch.load(
+                self.task_init_states_override, weights_only=False
+            )
 
         self._generator = np.random.default_rng(seed=self.seed)
         self._generator_ordered = np.random.default_rng(seed=0)
@@ -504,7 +516,11 @@ class LiberoEnv(gym.Env):
         self.total_num_group_envs = 0
         self.trial_id_bins = []
         for task_id in range(self.task_suite.get_num_tasks()):
-            task_num_trials = len(self._override_states) if self._override_states is not None else len(self.task_suite.get_task_init_states(task_id))
+            task_num_trials = (
+                len(self._override_states)
+                if self._override_states is not None
+                else len(self.task_suite.get_task_init_states(task_id))
+            )
             self.trial_id_bins.append(task_num_trials)
             self.total_num_group_envs += task_num_trials
         self.cumsum_trial_id_bins = np.cumsum(self.trial_id_bins)

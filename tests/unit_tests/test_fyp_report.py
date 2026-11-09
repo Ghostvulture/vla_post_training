@@ -215,6 +215,26 @@ class TestFypReport(unittest.TestCase):
         self.assertEqual(len(summaries), 2)
         self.assertEqual({s["task"]["key"] for s in summaries}, {"B1B", "B2P"})
 
+    def test_transfer_gate_requires_both_families_and_complete_counts(self):
+        def candidate(key, successes, total=10, status="complete"):
+            return {
+                "task": {"key": key},
+                "successes": successes,
+                "num_completed": total,
+                "status": status,
+            }
+
+        rows = [candidate("B1B", 5), candidate("B2P", 10), candidate("B2B", 0)]
+        self.assertFalse(report.select_transfer_candidates(rows)["passed"])
+        rows.append(candidate("B2W", 4, status="error"))
+        self.assertFalse(report.select_transfer_candidates(rows)["passed"])
+        rows.append(candidate("B2P", 4, total=5))
+        self.assertFalse(report.select_transfer_candidates(rows)["passed"])
+        rows.append(candidate("B2B", 8))
+        result = report.select_transfer_candidates(rows)
+        self.assertTrue(result["passed"])
+        self.assertEqual(result["selected"], {"B1": "B1B", "B2": "B2B"})
+
     def test_metadata_changes_and_missing_metadata_are_rejected(self):
         first, _ = self.batch("first", [0])
         second, _ = self.batch("second", [1])

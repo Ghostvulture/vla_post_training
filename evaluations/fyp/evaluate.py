@@ -61,7 +61,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=10,
         help="Distinct initialization states per task",
     )
-    parser.add_argument("--variant-root", type=Path, help="Server-generated immutable task variants")
+    parser.add_argument(
+        "--variant-root", type=Path, help="Server-generated immutable task variants"
+    )
     parser.add_argument("--trial-start", type=int, default=0)
     parser.add_argument("--num-envs", type=int, default=1, choices=[1, 2, 4])
     parser.add_argument(
@@ -139,10 +141,12 @@ def build_command(
         if args.variant_root is None:
             raise ValueError("Variant tasks require --variant-root")
         root = args.variant_root.resolve() / task["variant"]
-        command.extend([
-            f"+env.eval.task_bddl_override={json.dumps(str(root / 'task.bddl'))}",
-            f"+env.eval.task_init_states_override={json.dumps(str(root / 'states.pt'))}",
-        ])
+        command.extend(
+            [
+                f"+env.eval.task_bddl_override={json.dumps(str(root / 'task.bddl'))}",
+                f"+env.eval.task_init_states_override={json.dumps(str(root / 'states.pt'))}",
+            ]
+        )
     return command
 
 
@@ -396,7 +400,10 @@ def main(argv: list[str] | None = None) -> int:
             if task.get("variant"):
                 folder = args.variant_root.resolve() / task["variant"]
                 validation = json.loads((folder / "validation.json").read_text())
-                if not validation.get("valid") or not validation.get("goal_witness_success"):
+                if not all(
+                    validation.get(key)
+                    for key in ("valid", "goal_witness_success", "settling_valid")
+                ):
                     raise ValueError(f"Variant has not passed validation: {folder}")
                 task["variant_root"] = str(args.variant_root.resolve())
                 task["variant_validation"] = validation
@@ -409,7 +416,13 @@ def main(argv: list[str] | None = None) -> int:
         "evo_git_commit": git_revision(args.evo_repo),
         "libero_version": importlib.metadata.version("rlinf-libero"),
         "libero_package_path": str(libero_path),
-        "protocol": {**PROTOCOL, "num_envs": args.num_envs, "variant_root": str(args.variant_root.resolve()) if args.variant_root else None},
+        "protocol": {
+            **PROTOCOL,
+            "num_envs": args.num_envs,
+            "variant_root": str(args.variant_root.resolve())
+            if args.variant_root
+            else None,
+        },
         "tasks": tasks,
         "trial_ids": trials,
         "budget_minutes": args.budget_minutes,
