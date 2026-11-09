@@ -275,3 +275,20 @@ All 90 trajectories completed without environment errors; no RL ran. Both column
 Evaluation used commit `1eb77c9e`; results are at `$FYP_STORAGE/results/sg6-expanded-20261109`. Slurm jobs 19464/19465 completed, totaling about 0.450 single-GPU hours for scene checks and evaluation. B2R, the ramekin, failed the goal-witness check and was not scored. B2P reused validated assets from the earlier directory, retaining their original generation and validation records.
 
 The white bowl and plate leave room for improvement, but neither object-replacement candidate succeeded; a moderately difficult object pair is still missing. Only 1/10 white-bowl trials retained success at the end, requiring video diagnosis. A and the source task share initializations; B uses generated states, and the plate also changes target position. Cross-condition differences cannot be attributed to a single factor. Ten trials are screening evidence; 0/10 and 10/10 do not establish true probabilities of zero or one. Repeated initializations across batches are not additional samples. This screening does not launch training.
+
+## Single-Task RL Pilot
+
+The user authorized the next step. Train on SG6; use white bowl B2N and plate B2P as the primary near-task tests, with A1/A2 and G1/SG7 as appearance and different-skill controls. This narrows the question to container transfer, not object transfer. The training cap remains 48 GPU hours including retries, with at most 8 GPU hours for pilot troubleshooting; evaluation has a separate 8 GPU-hour cap.
+
+`fyp_sg6_grpo_evo1` retains the official GRPO settings and trains only the action head. Initialization IDs 0–19 are training, 20–29 validation, and 30–49 final test. Two GPUs separate the actor from rollout/env, with 8 environments, group size 8, and micro-batch size 1. The default runs two iterations and saves each checkpoint. B/C do not enter training or test-based checkpoint selection. Layout diversification and matched-interaction comparison follow only after the pilot passes validation.
+
+Run the pilot below with a fresh output directory. The 45-minute limit bounds the two-GPU job; it is not a completion estimate. Inspect reward-group metrics, gradients, and checkpoint saving. A successful launch alone does not establish a valid update.
+
+```bash
+source "$HOME/.config/fyp/evo1-env.sh"
+cd "$HOME/RLinf"
+sbatch --partition=GPU --nodelist="$FYP_NODE" --gres=gpu:4090:2 \
+  --cpus-per-task=16 --time=00:45:00 --job-name=fyp-grpo-pilot \
+  --output="$FYP_STORAGE/results/grpo-pilot-%j.log" \
+  --wrap='. "$HOME/.config/fyp/evo1-env.sh"; cd "$HOME/RLinf"; bash evaluations/fyp/train.sh "$FYP_STORAGE/results/sg6-grpo-pilot-v1"'
+```

@@ -275,3 +275,20 @@ python evaluations/fyp/prepare_variants.py \
 评分代码为 `1eb77c9e`，结果目录为 `$FYP_STORAGE/results/sg6-expanded-20261109`。Slurm 19464/19465均完成，场景检查与评估合计约0.450单卡GPU小时。B2R瓷烤盅没有通过成功判据见证检查，未评分；B2P复用了旧目录中的已验证资产，保留其原始生成与验证记录。
 
 白碗和盘子有提升空间，但两个换物体候选均未成功，尚未找到难度适中的换物体配对。白碗只有1/10保持成功至结束，后续需录像诊断。A类与原任务使用匹配初始化；B类使用生成状态，盘子也改变了目标位置，不能把跨条件分数差只归因于单一因素。每条件10次仅用于筛查，0/10和10/10均不代表真实概率确定为0或1。不同批次重复初始化不合并为新增样本；本轮不启动训练。
+
+## 单任务 RL 短跑
+
+用户已授权进入下一步。选择SG6为训练任务，白碗B2N和盘子B2P为近任务主评测，A1/A2与G1/SG7作为外观及不同技能对照。本轮问题收窄为换容器迁移，不能声称验证了换物体迁移。训练预算仍为48 GPU小时，短跑失败重试计入，短跑最多8 GPU小时；评估另限8 GPU小时。
+
+`fyp_sg6_grpo_evo1`复用官方GRPO设置，只训练动作头，训练初始化0–19，验证20–29，最终测试30–49。两卡分离actor和rollout/env，8环境、组大小8、微批次1。默认仅两轮、每轮保存checkpoint，不执行B/C训练或测试集选模。布局多样化与正式等交互预算比较须等短跑验证后实施。
+
+运行以下短跑。输出目录必须不存在，45分钟为两卡作业时限，不是完成承诺。检查日志中的奖励组统计、梯度及checkpoint保存；成功启动不等于训练有效。
+
+```bash
+source "$HOME/.config/fyp/evo1-env.sh"
+cd "$HOME/RLinf"
+sbatch --partition=GPU --nodelist="$FYP_NODE" --gres=gpu:4090:2 \
+  --cpus-per-task=16 --time=00:45:00 --job-name=fyp-grpo-pilot \
+  --output="$FYP_STORAGE/results/grpo-pilot-%j.log" \
+  --wrap='. "$HOME/.config/fyp/evo1-env.sh"; cd "$HOME/RLinf"; bash evaluations/fyp/train.sh "$FYP_STORAGE/results/sg6-grpo-pilot-v1"'
+```

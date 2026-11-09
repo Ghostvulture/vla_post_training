@@ -191,3 +191,23 @@ def test_variant_changes_preserve_unrelated_scene_objects():
         assert "wine_bottle_1 - wine_bottle" in changed
     with pytest.raises(ValueError):
         variant_bddl(source, "unknown")
+
+
+def test_training_pilot_is_single_task_and_excludes_heldout_states(monkeypatch):
+    hydra = pytest.importorskip("hydra")
+    monkeypatch.setenv("EMBODIED_PATH", str(ROOT / "examples/embodiment"))
+    with hydra.initialize_config_dir(
+        config_dir=str(ROOT / "examples/embodiment/config"), version_base=None
+    ):
+        cfg = hydra.compose(config_name="fyp_sg6_grpo_evo1")
+    assert dict(cfg.cluster.component_placement) == {"actor": 0, "env,rollout": 1}
+    assert cfg.env.train.task_suite_name == "libero_goal"
+    assert cfg.env.train.task_id_filter == [6]
+    assert cfg.env.train.train_trial_ids == list(range(20))
+    assert cfg.env.eval.eval_trial_ids == list(range(20, 30))
+    assert not set(cfg.env.train.train_trial_ids) & set(cfg.env.eval.eval_trial_ids)
+    assert cfg.actor.model.evo1.rl_trainable_scope == "action_head"
+    assert cfg.actor.micro_batch_size == 1
+    assert cfg.env.train.total_num_envs == cfg.algorithm.group_size == 8
+    assert cfg.env.train.max_episode_steps == 350
+    assert cfg.runner.max_steps == 2
