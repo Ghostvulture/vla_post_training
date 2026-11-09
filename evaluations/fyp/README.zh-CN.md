@@ -321,3 +321,19 @@ bash "$FYP_RUNTIME/fyp-eval-job.sh" \
   --budget-minutes 20 \
   --output-dir "$FYP_STORAGE/results/sg6-grpo-pilot-step2-smoke"
 ```
+
+## 后台对照实验
+
+用户已授权使用wake-run继续执行。共同预算定为每种方法20轮、56,000个仿真动作步（8环境×350步×20轮，包含成功后的继续交互），第10和20轮保存模型，主比较固定第20轮。两组均从原模型重新开始，种子42，顺序使用最多两卡；每组Slurm上限3小时。失败重试仍计入48 GPU小时总预算。最终评估原模型与两组RL模型，各测SG6/A1/A2/B2N/B2P/G1/SG7的30–49号初始化，计划420条，计入8 GPU小时评估上限。
+
+第一阶段只生成布局并做物理检查。对训练初始化0–19各生成4个布局，仅移动奶酪和黑碗；每轴至多1cm，且必须落在原BDDL放置区域内，不改旋转、质量、摩擦或其他物体。检查非初始成功、有限状态、穿透和静置位移。使用有限布局库，不声称覆盖任意连续扰动。通过后再接入训练，使用独立随机数流保持两方法的原始初始化采样顺序一致，组内共享布局。
+
+在服务器登录并加载个人环境后，可提交第一阶段；`--wait`等待Slurm作业退出，供本地wake-run在进程结束后自动续接。不要同时手动重复提交。
+
+```bash
+source "$HOME/.config/fyp/evo1-env.sh"
+cd "$HOME/RLinf"
+sbatch --wait --parsable \
+  --output="$FYP_STORAGE/results/layout-prepare-%j.log" \
+  evaluations/fyp/prepare_layouts_job.sh
+```

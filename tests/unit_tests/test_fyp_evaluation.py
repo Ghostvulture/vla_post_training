@@ -220,3 +220,21 @@ def test_export_requires_known_wrapper_prefix():
     for invalid in [{}, {"action_head.weight": 1}, {"evo1.x": 1, "other.x": 2}]:
         with pytest.raises(ValueError, match="evo1"):
             unwrap_weights(invalid)
+
+
+def test_layout_perturbations_stay_in_region_and_training_pool():
+    import numpy as np
+
+    from evaluations.fyp.prepare_layouts import REGIONS, SOURCE_TRIALS, sample_xy
+
+    assert SOURCE_TRIALS == list(range(20))
+    generator = np.random.default_rng(42)
+    for bounds in REGIONS.values():
+        original = np.array(bounds[:2]) + 0.001
+        for _ in range(100):
+            sampled = sample_xy(original, bounds, generator)
+            assert np.all(sampled >= np.array(bounds[:2]))
+            assert np.all(sampled <= np.array(bounds[2:]))
+            assert np.all(np.abs(sampled - original) <= 0.01)
+        with pytest.raises(ValueError, match="outside"):
+            sample_xy([99, 99], bounds, generator)

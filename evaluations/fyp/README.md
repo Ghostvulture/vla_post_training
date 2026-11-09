@@ -321,3 +321,19 @@ bash "$FYP_RUNTIME/fyp-eval-job.sh" \
   --budget-minutes 20 \
   --output-dir "$FYP_STORAGE/results/sg6-grpo-pilot-step2-smoke"
 ```
+
+## Background Comparison
+
+The user authorized continued execution with wake-run. Each method receives 20 iterations and 56,000 simulator action steps (8 environments × 350 steps × 20 iterations, including post-success interaction). Save at iterations 10 and 20; use iteration 20 for the primary comparison. Both restart from the original model with seed 42 and run sequentially on at most two GPUs, with a three-hour Slurm cap per condition. Retries remain inside the 48 GPU-hour training cap. Final evaluation covers initialization IDs 30–49 for SG6/A1/A2/B2N/B2P/G1/SG7 under the original and both RL models: 420 planned trajectories within the 8 GPU-hour evaluation cap.
+
+The first stage only generates and checks layouts. Generate four layouts for each training initialization 0–19, moving only the cheese and black bowl by at most 1 cm per axis within their original BDDL regions. Keep rotations, mass, friction, and other objects unchanged. Check non-successful starts, finite states, penetration, and settling motion. This finite bank does not cover arbitrary continuous perturbations. Only validated layouts enter training, with a separate RNG preserving the source-initialization sampling sequence across methods and one shared layout within each group.
+
+After logging into the server and activating the personal environment, submit this first stage below. `--wait` waits for Slurm completion so local wake-run can resume this chat when the process exits. Do not submit a duplicate manually.
+
+```bash
+source "$HOME/.config/fyp/evo1-env.sh"
+cd "$HOME/RLinf"
+sbatch --wait --parsable \
+  --output="$FYP_STORAGE/results/layout-prepare-%j.log" \
+  evaluations/fyp/prepare_layouts_job.sh
+```
