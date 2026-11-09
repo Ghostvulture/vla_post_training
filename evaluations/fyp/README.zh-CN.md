@@ -337,3 +337,5 @@ sbatch --wait --parsable \
   --output="$FYP_STORAGE/results/layout-prepare-%j.log" \
   evaluations/fyp/prepare_layouts_job.sh
 ```
+
+布局检查首轮（Slurm 19475）在物理验证前拒绝了略超出BDDL采样区域的官方初始化。现在只要求该位置±1cm与原区域有非空交集，新位置仍必须位于原区域；v1失败记录保留，新输出为`sg6-layouts-v2`。

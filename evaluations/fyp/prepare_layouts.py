@@ -33,11 +33,13 @@ def sample_xy(original, bounds, generator):
     original = np.asarray(original)
     lower = np.asarray(bounds[:2])
     upper = np.asarray(bounds[2:])
-    if np.any(original < lower - 1e-6) or np.any(original > upper + 1e-6):
-        raise ValueError(f"Source position {original} outside region {bounds}")
-    return generator.uniform(
-        np.maximum(lower, original - 0.01), np.minimum(upper, original + 0.01)
-    )
+    lower = np.maximum(lower, original - 0.01)
+    upper = np.minimum(upper, original + 0.01)
+    if np.any(lower >= upper):
+        raise ValueError(
+            f"Source position {original} outside reachable region {bounds}"
+        )
+    return generator.uniform(lower, upper)
 
 
 def main():
@@ -63,6 +65,18 @@ def main():
     records, bank = [], []
     try:
         env.reset()
+        source_positions = {}
+        for trial in SOURCE_TRIALS:
+            env.set_init_state(source_states[trial])
+            source_positions[trial] = {
+                name: env.sim.data.get_joint_qpos(env.env.get_object(name).joints[0])[
+                    :2
+                ].tolist()
+                for name in REGIONS
+            }
+        (args.output_dir / "source-positions.json").write_text(
+            json.dumps(source_positions, indent=2)
+        )
         for trial in SOURCE_TRIALS:
             variations = []
             for variant in range(4):

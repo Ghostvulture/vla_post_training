@@ -337,3 +337,5 @@ sbatch --wait --parsable \
   --output="$FYP_STORAGE/results/layout-prepare-%j.log" \
   evaluations/fyp/prepare_layouts_job.sh
 ```
+
+The first layout job (Slurm 19475) rejected an official source position just outside the BDDL sampling region before physical validation. Sampling now requires a nonempty intersection between the source ±1 cm and the original region; new positions must remain inside the original region. Preserve the failed v1 record and write new output to `sg6-layouts-v2`.

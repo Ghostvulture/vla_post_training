@@ -10,4 +10,4 @@ source "$HOME/.config/fyp/evo1-env.sh"
 export TMPDIR=/tmp
 cd "$HOME/RLinf"
 test -z "$(git status --porcelain)"
-python evaluations/fyp/prepare_layouts.py --output-dir "$FYP_STORAGE/variants/sg6-layouts-v1"
+python evaluations/fyp/prepare_layouts.py --output-dir "$FYP_STORAGE/variants/sg6-layouts-v2"

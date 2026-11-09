@@ -238,3 +238,16 @@ def test_layout_perturbations_stay_in_region_and_training_pool():
             assert np.all(np.abs(sampled - original) <= 0.01)
         with pytest.raises(ValueError, match="outside"):
             sample_xy([99, 99], bounds, generator)
+
+
+def test_layout_sampling_accepts_settled_source_just_outside_region():
+    import numpy as np
+
+    from evaluations.fyp.prepare_layouts import REGIONS, sample_xy
+
+    original = np.array([-0.03059484, 0.14390628])
+    bounds = REGIONS["cream_cheese_1"]
+    sampled = sample_xy(original, bounds, np.random.default_rng(42))
+    assert np.all(sampled >= bounds[:2])
+    assert np.all(sampled <= bounds[2:])
+    assert np.all(np.abs(sampled - original) <= 0.01)
