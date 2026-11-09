@@ -396,7 +396,7 @@ def main(argv: list[str] | None = None) -> int:
             if task.get("variant"):
                 folder = args.variant_root.resolve() / task["variant"]
                 validation = json.loads((folder / "validation.json").read_text())
-                if not validation.get("valid"):
+                if not validation.get("valid") or not validation.get("goal_witness_success"):
                     raise ValueError(f"Variant has not passed validation: {folder}")
                 task["variant_root"] = str(args.variant_root.resolve())
                 task["variant_validation"] = validation

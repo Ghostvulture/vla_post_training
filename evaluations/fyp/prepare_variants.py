@@ -42,11 +42,57 @@ def variant_bddl(source: str, key: str) -> str:
     return re.sub(r"\(:language[^)]+\)", f"(:language {language})", text)
 
 
+def validate_goals(root):
+    """Check that a centered placement can satisfy each variant's predicate."""
+    import numpy as np
+    import torch
+    from PIL import Image
+    from libero.libero.envs import OffScreenRenderEnv
+
+    sources = {"B1B": "butter_1", "B1A": "alphabet_soup_1", "B1T": "tomato_sauce_1"}
+    targets = {"B2P": "plate_1", "B2W": "wooden_tray_1", "B2B": "basket_1"}
+    for directory in sorted(root.iterdir()):
+        if not (directory / "validation.json").is_file():
+            continue
+        record = json.loads((directory / "validation.json").read_text())
+        if not record["valid"]:
+            continue
+        env = OffScreenRenderEnv(bddl_file_name=str(directory / "task.bddl"), camera_heights=448, camera_widths=448)
+        try:
+            env.reset()
+            states = torch.load(directory / "states.pt", weights_only=False)
+            env.set_init_state(states[0])
+            source = env.env.get_object(sources.get(directory.name, "cream_cheese_1"))
+            target_name = targets.get(directory.name, "akita_black_bowl_1")
+            target = env.env.get_object(target_name)
+            target_pos = env.sim.data.body_xpos[env.env.obj_body_id[target_name]].copy()
+            qpos = env.sim.data.get_joint_qpos(source.joints[0]).copy()
+            qpos[:3] = target_pos
+            qpos[2] += float(target.top_offset[2] - source.bottom_offset[2]) + 0.01
+            env.sim.data.set_joint_qpos(source.joints[0], qpos)
+            env.sim.forward()
+            success = False
+            for _ in range(40):
+                obs, _, _, _ = env.step(np.array([0., 0., 0., 0., 0., 0., -1.]))
+                success = success or bool(env.check_success())
+            record["goal_witness_success"] = success
+            record["goal_witness_note"] = "Object placed above target and settled; validates predicate feasibility, not policy success or robot reachability"
+            Image.fromarray(obs["agentview_image"][::-1, ::-1]).save(directory / "goal-witness.png")
+            (directory / "validation.json").write_text(json.dumps(record, indent=2))
+            print(directory.name, "goal witness", success, flush=True)
+        finally:
+            env.close()
+
+
 def main():
     """Generate immutable state pools and inspect development initializations."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument("--validate-goals", action="store_true")
     args = parser.parse_args()
+    if args.validate_goals:
+        validate_goals(args.output_dir)
+        return
     args.output_dir.mkdir(parents=True, exist_ok=False)
     import numpy as np
     import torch
