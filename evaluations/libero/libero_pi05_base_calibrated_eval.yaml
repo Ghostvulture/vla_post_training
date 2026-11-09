@@ -1,24 +1,69 @@
 defaults:
-  - libero_spatial_openpi_pi05_eval
-  - _self_
-
+- env/libero_spatial@env.eval
+- model/pi0_5@rollout.model
+- override hydra/job_logging: stdout
+- _self_
+hydra:
+  run:
+    dir: .
+  output_subdir: null
+  searchpath:
+  - file://${oc.env:EMBODIED_PATH}/config/
+cluster:
+  num_nodes: 1
+  component_placement:
+    env,rollout: all
+runner:
+  task_type: embodied_eval
+  logger:
+    log_path: ../results
+    project_name: rlinf
+    experiment_name: libero_spatial_openpi_pi05_eval
+    logger_backends:
+    - tensorboard
+  max_epochs: 1
+  max_steps: -1
+  only_eval: true
+  val_check_interval: -1
+  save_interval: -1
+  resume_dir: null
+  ckpt_path: null
 env:
+  group_name: EnvGroup
   eval:
-    task_suite_name: libero_goal
-    total_num_envs: 1
     rollout_epoch: 2
+    total_num_envs: 1
+    auto_reset: true
+    ignore_terminations: true
     max_episode_steps: 350
     max_steps_per_rollout_epoch: 350
+    group_size: 1
+    use_fixed_reset_state_ids: true
+    is_eval: true
+    video_cfg:
+      save_video: true
+      video_base_dir: ${runner.logger.log_path}/video/eval
+    task_suite_name: libero_goal
     use_ordered_reset_state_ids: true
-    eval_trial_ids: [0, 1]
+    eval_trial_ids:
+    - 0
+    - 1
     seed: 0
-
 rollout:
+  group_name: RolloutGroup
+  generation_backend: huggingface
+  recompute_logprobs: false
+  unnorm_key: libero_10
+  enable_offload: false
+  pipeline_stage_num: 1
   model:
     model_path: ${oc.env:FYP_STORAGE}/models/pi05_base_openpi
+    model_type: openpi
     num_action_chunks: 5
     num_steps: 10
     openpi:
+      task: eval
+      noise_level: 0.3
       config_name: pi05_base_libero_calibrated
       action_horizon: 50
       discrete_state_input: true
