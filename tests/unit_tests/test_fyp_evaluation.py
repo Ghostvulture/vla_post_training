@@ -211,3 +211,12 @@ def test_training_pilot_is_single_task_and_excludes_heldout_states(monkeypatch):
     assert cfg.env.train.total_num_envs == cfg.algorithm.group_size == 8
     assert cfg.env.train.max_episode_steps == 350
     assert cfg.runner.max_steps == 2
+
+
+def test_export_requires_known_wrapper_prefix():
+    from evaluations.fyp.export_evo1 import unwrap_weights
+
+    assert unwrap_weights({"evo1.action_head.weight": 1}) == {"action_head.weight": 1}
+    for invalid in [{}, {"action_head.weight": 1}, {"evo1.x": 1, "other.x": 2}]:
+        with pytest.raises(ValueError, match="evo1"):
+            unwrap_weights(invalid)

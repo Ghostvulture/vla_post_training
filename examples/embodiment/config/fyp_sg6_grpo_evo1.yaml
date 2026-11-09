@@ -61,6 +61,7 @@ algorithm:
 env:
   group_name: EnvGroup
   train:
+    log_reset_ids: true
     init_params:
       camera_heights: 448
       camera_widths: 448
@@ -126,6 +127,7 @@ env:
     - 28
     - 29
 rollout:
+  log_weight_sync: true
   group_name: RolloutGroup
   generation_backend: huggingface
   recompute_logprobs: false

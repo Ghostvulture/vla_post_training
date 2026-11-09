@@ -290,5 +290,16 @@ cd "$HOME/RLinf"
 sbatch --partition=GPU --nodelist="$FYP_NODE" --gres=gpu:4090:2 \
   --cpus-per-task=16 --time=00:45:00 --job-name=fyp-grpo-pilot \
   --output="$FYP_STORAGE/results/grpo-pilot-%j.log" \
-  --wrap='. "$HOME/.config/fyp/evo1-env.sh"; cd "$HOME/RLinf"; bash evaluations/fyp/train.sh "$FYP_STORAGE/results/sg6-grpo-pilot-v1"'
+  --wrap='bash -lc '"'"'source "$HOME/.config/fyp/evo1-env.sh"; cd "$HOME/RLinf"; bash evaluations/fyp/train.sh "$FYP_STORAGE/results/sg6-grpo-pilot-v1"'"'"''
+```
+
+Training checkpoints are under `sg6-grpo-pilot/checkpoints/global_step_N` inside the output directory. To test one resumed iteration, give `train.sh` a new output directory and append `runner.resume_dir=/full/path/global_step_2 runner.max_epochs=3 runner.max_steps=3`. Resume uses the training checkpoint, not the downloaded model directory.
+
+Run the export below on the server. It rejects nonfinite weights, changes outside the action head, or an unchanged action head. A successful export still requires loading through official evaluation.
+
+```bash
+python evaluations/fyp/export_evo1.py \
+  --base "$FYP_STORAGE/models/Evo1_LIBERO" \
+  --weights "$FYP_STORAGE/results/sg6-grpo-pilot-v1/sg6-grpo-pilot/checkpoints/global_step_2/actor/model_state_dict/full_weights.pt" \
+  --output "$FYP_STORAGE/models/sg6-grpo-pilot-step2"
 ```

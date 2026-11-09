@@ -290,5 +290,16 @@ cd "$HOME/RLinf"
 sbatch --partition=GPU --nodelist="$FYP_NODE" --gres=gpu:4090:2 \
   --cpus-per-task=16 --time=00:45:00 --job-name=fyp-grpo-pilot \
   --output="$FYP_STORAGE/results/grpo-pilot-%j.log" \
-  --wrap='. "$HOME/.config/fyp/evo1-env.sh"; cd "$HOME/RLinf"; bash evaluations/fyp/train.sh "$FYP_STORAGE/results/sg6-grpo-pilot-v1"'
+  --wrap='bash -lc '"'"'source "$HOME/.config/fyp/evo1-env.sh"; cd "$HOME/RLinf"; bash evaluations/fyp/train.sh "$FYP_STORAGE/results/sg6-grpo-pilot-v1"'"'"''
+```
+
+训练checkpoint位于输出目录的 `sg6-grpo-pilot/checkpoints/global_step_N`。恢复时为 `train.sh` 指定新的输出目录，并追加 `runner.resume_dir=/完整路径/global_step_2 runner.max_epochs=3 runner.max_steps=3`，只续跑一轮检查。恢复使用训练checkpoint，不能传入下载模型目录。
+
+导出时在服务器运行下面的命令。它拒绝非有限权重、冻结部分变化或动作头完全未变化；导出成功后仍需官方evaluation加载验证。
+
+```bash
+python evaluations/fyp/export_evo1.py \
+  --base "$FYP_STORAGE/models/Evo1_LIBERO" \
+  --weights "$FYP_STORAGE/results/sg6-grpo-pilot-v1/sg6-grpo-pilot/checkpoints/global_step_2/actor/model_state_dict/full_weights.pt" \
+  --output "$FYP_STORAGE/models/sg6-grpo-pilot-step2"
 ```

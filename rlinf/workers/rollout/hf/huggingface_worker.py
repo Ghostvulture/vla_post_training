@@ -681,6 +681,8 @@ class MultiStepRolloutWorker(Worker):
 
         applied_version = await self.weight_syncer.apply(self.hf_model, recv_func)
         self.version = applied_version
+        if self.cfg.rollout.get("log_weight_sync", False):
+            self.log_info(f"Applied rollout weight version {applied_version}")
         if self.finished_episodes is None:
             self.finished_episodes = (
                 self.version * self.total_num_train_envs * self.rollout_epoch

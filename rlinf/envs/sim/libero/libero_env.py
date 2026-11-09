@@ -857,6 +857,13 @@ class LiberoEnv(gym.Env):
         task_ids, trial_ids = self._get_task_and_trial_ids_from_reset_state_ids(
             reset_state_ids
         )
+        if not self.is_eval and self.cfg.get("log_reset_ids", False):
+            logger.info(
+                "[libero train reset] task_ids=%s trial_ids=%s group_size=%s",
+                task_ids,
+                trial_ids,
+                self.group_size,
+            )
         for j, env_id in enumerate(env_idx):
             task_changed = self.task_ids[env_id] != task_ids[j]
             self.task_ids[env_id] = task_ids[j]
