@@ -339,3 +339,25 @@ sbatch --wait --parsable \
 ```
 
 布局检查首轮（Slurm 19475）在物理验证前拒绝了略超出BDDL采样区域的官方初始化。现在只要求该位置±1cm与原区域有非空交集，新位置仍必须位于原区域；v1失败记录保留，新输出为`sg6-layouts-v2`。
+
+### 自动执行与验收
+
+`sg6-layouts-v2`已通过80个布局检查（训练状态0–19各4个）。训练时使用独立布局随机数流，同一GRPO组共享一个布局；禁止对评估或部分组重置使用布局库。
+
+`run_comparison.sh`顺序提交四阶段：1轮布局接入短跑、20轮普通RL、20轮布局多样化RL、三个模型的完整留出评估。每阶段使用`sbatch --wait`等待完成，失败立即停止；本地wake-run等待整个驱动进程退出并通知当前对话。最大申请量为训练侧13 GPU小时（加之前已使用量）和本次评估侧3 GPU小时，仍低于总预算。不要重复运行已创建的比较目录，失败后先检查日志再决定续接。
+
+训练验收要求指标有限、至少存在有效混合奖励组和非零梯度，并逐轮核对实际仿真动作计数。两种方法还须具有相同的原始初始化组序列；不把终止后的动作掩码数量冒充全部物理交互。模型导出要求动作头更新且冻结部分不变。物理交互计数包括成功后继续执行的动作，不含初始化静置。
+
+用下面命令启动或查看记录（启动只能执行一次）。模型导出到`$FYP_STORAGE/models/sg6-comparison-v1-{plain,diverse}`，原始指标、命令、checkpoint和评估保存在`$FYP_STORAGE/results/sg6-comparison-v1`。最终评估按固定第20轮模型，不使用留出成绩挑选checkpoint。
+
+```bash
+source "$HOME/.config/fyp/evo1-env.sh"
+cd "$HOME/RLinf"
+bash evaluations/fyp/run_comparison.sh
+```
+
+```bash
+squeue -u "$USER"
+tail -n 30 "$FYP_STORAGE/results/sg6-comparison-v1/plain/console.log"
+cat "$FYP_STORAGE/results/sg6-comparison-v1/plain/training-audit.json"
+```

@@ -251,3 +251,28 @@ def test_layout_sampling_accepts_settled_source_just_outside_region():
     assert np.all(sampled >= bounds[:2])
     assert np.all(sampled <= bounds[2:])
     assert np.all(np.abs(sampled - original) <= 0.01)
+
+
+def test_training_audit_rejects_missing_budget_and_ineffective_updates():
+    from evaluations.fyp.audit_training import validate_records
+
+    tags = [
+        "train/actor/grad_norm",
+        "train/actor/approx_kl",
+        "rollout/group_mixed_fraction",
+        "rollout/advantages_max",
+    ]
+    metrics = {
+        tag: [{"step": 0, "value": 1.0}, {"step": 1, "value": 1.0}] for tag in tags
+    }
+    validate_records(metrics, [2800, 5600], 2)
+    with pytest.raises(ValueError, match="interaction"):
+        validate_records(metrics, [2800], 2)
+    with pytest.raises(ValueError, match="Incomplete"):
+        validate_records(metrics, [2800], 1)
+    metrics[tags[0]][0]["value"] = float("nan")
+    with pytest.raises(ValueError, match="Nonfinite"):
+        validate_records(metrics, [2800, 5600], 2)
+    metrics[tags[0]] = [{"step": 0, "value": 0.0}, {"step": 1, "value": 0.0}]
+    with pytest.raises(ValueError, match="nonzero"):
+        validate_records(metrics, [2800, 5600], 2)

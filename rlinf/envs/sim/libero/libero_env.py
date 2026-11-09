@@ -36,6 +36,7 @@ from rlinf.envs.sim.libero.utils import (
     get_libero_wrist_image,
     quat2axisangle,
     record_completed_episode_task_stats,
+    select_training_layouts,
 )
 from rlinf.envs.sim.libero.venv import ReconfigureSubprocEnv
 from rlinf.envs.utils import (
@@ -196,6 +197,40 @@ class LiberoEnv(gym.Env):
 
         self.task_suite: Benchmark = get_benchmark_overridden(cfg.task_suite_name)()
 
+        self._layout_bank = None
+        layout_path = cfg.get("layout_bank_path", None)
+        self._layout_generator = np.random.default_rng(self.seed + 7919)
+        if layout_path:
+            if (
+                self.is_eval
+                or cfg.task_suite_name != "libero_goal"
+                or self.task_id_filter != [6]
+                or self.task_bddl_override
+                or self.auto_reset
+            ):
+                raise ValueError(
+                    "Layout bank requires SG6 training with no task override or auto-reset"
+                )
+            bank = torch.load(layout_path, weights_only=False)
+            sources = bank["source_trial_ids"]
+            states = np.asarray(bank["states"])
+            validation = bank["validation"]
+            if (
+                not validation.get("valid")
+                or sources != list(range(20))
+                or list(self.train_trial_ids or []) != sources
+            ):
+                raise ValueError(
+                    "Layout bank must be validated and restricted to training IDs 0–19"
+                )
+            source_shape = np.asarray(self.task_suite.get_task_init_states(6)[0]).shape
+            if states.shape != (20, 4, *source_shape) or not np.isfinite(states).all():
+                raise ValueError(
+                    "Layout bank must contain 20×4 finite states of the source shape"
+                )
+            self._layout_bank = states
+            self._layout_sources = sources
+        self._sim_interaction_steps = 0
         self._compute_total_num_group_envs()
         self.reset_state_ids_all = self.get_reset_state_ids_all()
         if self.is_eval:
@@ -732,6 +767,17 @@ class LiberoEnv(gym.Env):
                     )
             return init_state
 
+        if self._layout_bank is not None:
+            states, records = select_training_layouts(
+                self._layout_bank,
+                self._layout_sources,
+                self.trial_ids,
+                env_idx,
+                self.group_size,
+                self._layout_generator,
+            )
+            logger.info("[libero training layouts] %s", records)
+            return states
         if self._override_states is not None:
             return [self._override_states[self.trial_ids[eid]] for eid in env_idx]
 
@@ -974,6 +1020,17 @@ class LiberoEnv(gym.Env):
 
         self._elapsed_steps += 1
         raw_obs, _reward, terminations, info_lists = self.env.step(actions)
+        if not self.is_eval and self.cfg.get("log_interaction_steps", False):
+            self._sim_interaction_steps += self.num_envs
+            if (
+                self._sim_interaction_steps
+                % (self.num_envs * self.cfg.max_episode_steps)
+                == 0
+            ):
+                logger.info(
+                    "[libero interaction count] simulator_action_steps=%s",
+                    self._sim_interaction_steps,
+                )
         self.current_raw_obs = raw_obs
         infos = list_of_dict_to_dict_of_list(info_lists)
         truncations = self.elapsed_steps >= self.cfg.max_episode_steps

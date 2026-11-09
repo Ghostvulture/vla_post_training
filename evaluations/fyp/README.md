@@ -339,3 +339,25 @@ sbatch --wait --parsable \
 ```
 
 The first layout job (Slurm 19475) rejected an official source position just outside the BDDL sampling region before physical validation. Sampling now requires a nonempty intersection between the source ±1 cm and the original region; new positions must remain inside the original region. Preserve the failed v1 record and write new output to `sg6-layouts-v2`.
+
+### Automated Execution and Validation
+
+`sg6-layouts-v2` passed all 80 layout checks (four per training state 0–19). Training uses a separate layout RNG and shares one layout across each GRPO group. Evaluation and partial-group resets cannot use the layout bank.
+
+`run_comparison.sh` submits four stages sequentially: one layout integration iteration, 20 ordinary RL iterations, 20 diversified RL iterations, and complete held-out evaluation of all three models. Each stage waits through `sbatch --wait`; a failure stops subsequent stages. Local wake-run waits for the driver process to exit and notifies this chat. Maximum requested allocation is 13 training GPU hours plus prior usage, and 3 evaluation GPU hours for this comparison, within the total caps. Do not rerun an existing comparison directory; inspect a failure before deciding how to resume.
+
+Training validation requires finite metrics, at least one mixed-reward group and nonzero gradient, and exact per-iteration simulator action counts. Both methods must share the source-initialization group sequence. Do not confuse post-termination loss-mask counts with physical interaction counts. Export requires changed action-head weights and unchanged frozen weights. Simulator action counts include post-success actions but exclude initialization settling.
+
+Use the commands below to launch or inspect records; launch only once. Exports go to `$FYP_STORAGE/models/sg6-comparison-v1-{plain,diverse}`; metrics, commands, checkpoints, and evaluations go to `$FYP_STORAGE/results/sg6-comparison-v1`. Final evaluation uses the fixed iteration-20 checkpoints, never held-out scores to select a checkpoint.
+
+```bash
+source "$HOME/.config/fyp/evo1-env.sh"
+cd "$HOME/RLinf"
+bash evaluations/fyp/run_comparison.sh
+```
+
+```bash
+squeue -u "$USER"
+tail -n 30 "$FYP_STORAGE/results/sg6-comparison-v1/plain/console.log"
+cat "$FYP_STORAGE/results/sg6-comparison-v1/plain/training-audit.json"
+```

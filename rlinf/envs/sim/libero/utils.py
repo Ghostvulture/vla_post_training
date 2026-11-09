@@ -327,3 +327,30 @@ def record_completed_episode_task_stats(
             message += f", success_at_end={bool(episode['success_at_end'][eid])}"
         logger.info(message)
     return count_mask
+
+
+def select_training_layouts(
+    bank, source_trial_ids, trial_ids, env_idx, group_size, generator
+):
+    """Select one layout per complete GRPO group without changing source-state RNG."""
+    selected = list(map(int, env_idx))
+    if len(set(selected)) != len(selected):
+        raise ValueError("Duplicate environment IDs in layout reset")
+    lookup = {int(trial): row for row, trial in enumerate(source_trial_ids)}
+    layouts, records = {}, []
+    for group in sorted({eid // group_size for eid in selected}):
+        members = list(range(group * group_size, (group + 1) * group_size))
+        if not set(members).issubset(selected):
+            raise ValueError("Layout reset requires complete GRPO groups")
+        source = int(trial_ids[members[0]])
+        if source not in lookup or any(
+            int(trial_ids[eid]) != source for eid in members
+        ):
+            raise ValueError("Group must share one whitelisted source initialization")
+        variant = int(generator.integers(bank.shape[1]))
+        for eid in members:
+            layouts[eid] = bank[lookup[source], variant].copy()
+        records.append(
+            {"group": group, "source_trial_id": source, "layout_id": variant}
+        )
+    return [layouts[eid] for eid in selected], records

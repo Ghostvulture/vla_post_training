@@ -167,3 +167,28 @@ def test_optional_episode_fields_are_explicitly_unavailable(
         "[libero eval] task_id=0, trial_id=0, success=False, "
         "episode_len=null, elapsed_seconds=null"
     ]
+
+
+def test_training_layouts_share_one_state_per_group(libero_utils):
+    bank = np.arange(20 * 4 * 3).reshape(20, 4, 3)
+    trials = np.array([3] * 8 + [7] * 8)
+    states, records = libero_utils.select_training_layouts(
+        bank, list(range(20)), trials, np.arange(16), 8, np.random.default_rng(7919)
+    )
+    for record in records:
+        start = record["group"] * 8
+        for state in states[start : start + 8]:
+            np.testing.assert_array_equal(
+                state, bank[record["source_trial_id"], record["layout_id"]]
+            )
+    states[0][0] = -1
+    assert states[1][0] != -1
+    for ids, bad_trials in [
+        (np.arange(7), trials),
+        (np.arange(8), np.arange(16)),
+        (np.arange(8), np.array([30] * 16)),
+    ]:
+        with pytest.raises(ValueError):
+            libero_utils.select_training_layouts(
+                bank, list(range(20)), bad_trials, ids, 8, np.random.default_rng(1)
+            )
