@@ -276,3 +276,46 @@ def test_training_audit_rejects_missing_budget_and_ineffective_updates():
     metrics[tags[0]] = [{"step": 0, "value": 0.0}, {"step": 1, "value": 0.0}]
     with pytest.raises(ValueError, match="nonzero"):
         validate_records(metrics, [2800, 5600], 2)
+
+
+def test_pi05_download_rejects_outside_prefix():
+    from evaluations.fyp.download_pi05_base import relative_name
+
+    assert relative_name("checkpoints/pi05_base/params/_METADATA") == Path(
+        "params/_METADATA"
+    )
+    for name in ("checkpoints/pi05_libero/model", "checkpoints/pi05_base/../model"):
+        with pytest.raises(ValueError):
+            relative_name(name)
+
+
+def test_pi05_download_resumes_exact_generation(tmp_path, monkeypatch):
+    import io
+
+    from evaluations.fyp import download_pi05_base as downloader
+
+    target = tmp_path / "params" / "weights"
+    target.parent.mkdir()
+    target.with_name("weights.part").write_bytes(b"abc")
+    requests = []
+
+    class Response(io.BytesIO):
+        status = 206
+        headers = {"Content-Range": "bytes 3-5/6"}
+
+    def open_request(request, timeout):
+        requests.append(request)
+        return Response(b"def")
+
+    monkeypatch.setattr(downloader.urllib.request, "urlopen", open_request)
+    item = {
+        "name": "checkpoints/pi05_base/params/weights",
+        "size": "6",
+        "generation": "123",
+    }
+    downloader.download(item, tmp_path)
+    assert target.read_bytes() == b"abcdef"
+    assert "generation=123" in requests[0].full_url
+    assert requests[0].headers["Range"] == "bytes=3-"
+    downloader.download(item, tmp_path)
+    assert len(requests) == 1

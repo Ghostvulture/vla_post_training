@@ -361,3 +361,18 @@ squeue -u "$USER"
 tail -n 30 "$FYP_STORAGE/results/sg6-comparison-v1/plain/console.log"
 cat "$FYP_STORAGE/results/sg6-comparison-v1/plain/training-audit.json"
 ```
+
+## Pi0.5 Base Feasibility Check (In Progress)
+
+Use the official `gs://openpi-assets/checkpoints/pi05_base` checkpoint. Download, convert, and verify the control interface before evaluating a few development initializations. This stage runs neither SFT nor RL. The official release distinguishes base and LIBERO-adapted checkpoints; that distinction alone does not prove the full training history excludes LIBERO.
+
+Run the following on the server. The downloader records official object generations, resumes partial files, and checks byte counts. Generations identify source versions; they are not a separate SHA256 repository registry.
+
+```bash
+source "$HOME/.config/fyp/evo1-env.sh"
+cd "$HOME/RLinf"
+python evaluations/fyp/download_pi05_base.py \
+  --output "$FYP_STORAGE/models/pi05_base_jax"
+```
+
+A completed download does not validate policy behavior or success rates. The source weights use JAX; conversion will reuse RLinf’s `jax_to_openpi` tool. Included assets cover Franka/DROID and other embodiments, but not LIBERO. Establish state/action semantics before evaluation instead of silently borrowing LIBERO-finetuned normalization. Keep the existing Evo-1 environment separate.

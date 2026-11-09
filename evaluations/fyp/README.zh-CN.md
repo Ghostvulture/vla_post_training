@@ -361,3 +361,18 @@ squeue -u "$USER"
 tail -n 30 "$FYP_STORAGE/results/sg6-comparison-v1/plain/console.log"
 cat "$FYP_STORAGE/results/sg6-comparison-v1/plain/training-audit.json"
 ```
+
+## π0.5 Base 可行性验证（进行中）
+
+使用官方 `gs://openpi-assets/checkpoints/pi05_base`，先下载、转换和检查控制接口，再运行少量开发初始化评估。本阶段不运行 SFT 或 RL。官方发布将 base 与 LIBERO 微调权重区分，但这不能独立证明完整历史训练数据不含 LIBERO。
+
+在服务器执行以下命令；下载会记录官方对象 generation，保留断点，并核对文件长度。generation 是来源版本，不是另建 SHA256 仓库机制。
+
+```bash
+source "$HOME/.config/fyp/evo1-env.sh"
+cd "$HOME/RLinf"
+python evaluations/fyp/download_pi05_base.py \
+  --output "$FYP_STORAGE/models/pi05_base_jax"
+```
+
+下载成功仅表示文件齐全，不能作为模型或成功率验证。原始权重为 JAX 格式，后续复用 RLinf 的 `jax_to_openpi` 转换工具。随附 Franka/DROID 等统计，没有 LIBERO 统计；评估前必须确定正确的状态和动作语义，不静默借用 LIBERO 微调版统计。现有 Evo-1 环境保持独立。
