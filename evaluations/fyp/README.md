@@ -402,3 +402,7 @@ sbatch --wait --parsable --partition=GPU --nodelist="$FYP_NODE" \
 ```
 
 The JSON report records finite outputs, latency and peak GPU memory. Synthetic images and token IDs do not validate language processing, LIBERO control or task success; this check runs zero environment episodes.
+
+Slurm job 19492 passed the synthetic inference check using commit `31005946`: 3,353,433,872 parameters, output shape `[1, 50, 32]`, all finite, and zero maximum difference between two passes with fixed noise. The first and second passes took 0.717 and 0.310 seconds. Peak allocated/reserved GPU memory was 6.649/6.805 GiB on one RTX 4090. These measurements exclude simulation and prompt tokenization and do not establish RL training memory requirements. No LIBERO episodes have run for this checkpoint.
+
+The next evaluation requires an explicit normalization protocol. The downloaded base assets have no LIBERO statistics; the copied Franka statistics are not validated for LIBERO. Using public LIBERO statistics would be target-domain interface calibration, even with unchanged base weights, and must be reported separately from a claim of no LIBERO data exposure. Calibration alone would not prove correct control semantics.
