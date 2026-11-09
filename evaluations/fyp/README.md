@@ -255,3 +255,23 @@ python evaluations/fyp/prepare_variants.py \
 --variant-root "$FYP_STORAGE/variants/sg6-expanded-20261109" \
 --episodes 10 --trial-start 0 --num-envs 2
 ```
+
+### Nine-Condition Screening Results (2026-11-09)
+
+All 90 trajectories completed without environment errors; no RL ran. Both columns count successes out of 10: at any point and at the end.
+
+| Condition | Success Once | Success at End |
+|---|---:|---:|
+| SG6 Original task | 7 | 5 |
+| A1 Dark-blue wall | 7 | 3 |
+| A2 Dark-green wall | 9 | 5 |
+| B1B Butter | 0 | 0 |
+| B1A Alphabet soup | 0 | 0 |
+| B2N White bowl | 5 | 1 |
+| B2P Existing plate | 2 | 2 |
+| G1 Open drawer | 10 | 10 |
+| SG7 Turn on stove | 10 | 10 |
+
+Evaluation used commit `1eb77c9e`; results are at `$FYP_STORAGE/results/sg6-expanded-20261109`. Slurm jobs 19464/19465 completed, totaling about 0.450 single-GPU hours for scene checks and evaluation. B2R, the ramekin, failed the goal-witness check and was not scored. B2P reused validated assets from the earlier directory, retaining their original generation and validation records.
+
+The white bowl and plate leave room for improvement, but neither object-replacement candidate succeeded; a moderately difficult object pair is still missing. Only 1/10 white-bowl trials retained success at the end, requiring video diagnosis. A and the source task share initializations; B uses generated states, and the plate also changes target position. Cross-condition differences cannot be attributed to a single factor. Ten trials are screening evidence; 0/10 and 10/10 do not establish true probabilities of zero or one. Repeated initializations across batches are not additional samples. This screening does not launch training.
