@@ -427,3 +427,5 @@ sbatch --wait --parsable --partition=GPU --nodelist="$FYP_NODE" \
   --output="$FYP_STORAGE/results/pi05-base-check/libero-%j.log" \
   evaluations/fyp/check_pi05_libero_job.sh
 ```
+
+Slurm job 19494 completed two distinct SG6 development trajectories (IDs 0 and 1): success_once 0/2 and success_at_end 0/2, each reaching 350 steps without an environment error in the log. Logged episode durations were 38.794 and 38.244 seconds; total single-GPU allocation was 165 seconds. Sampled video frames show arm motion without observed target pickup or placement. This verifies an executable pipeline, not correct domain/control alignment or useful zero-shot task ability. Two failures do not estimate overall performance. No training was started. Full logs and videos are under `$FYP_STORAGE/results/pi05-base-check/libero-19494`.
