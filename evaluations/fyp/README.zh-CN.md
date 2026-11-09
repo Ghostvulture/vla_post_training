@@ -236,7 +236,7 @@ python evaluations/fyp/prepare_variants.py \
 
 ## 扩展原模型筛查
 
-按用户确认，完整筛查四类各两个候选及 SG6 参照，共九个条件，每个条件 10 次开发初始化。A1/A2 只将墙面改为深蓝/深绿，地面保持 light-gray，并使用原任务初始化；B1B/B1A 替换为 butter/alphabet soup；B2N/B2R 替换为白碗/瓷烤盅；G1/SG7 分别打开抽屉/打开炉灶。B 类使用生成的初始化，不能称为跨条件相同物理状态。保持官方 On 成功谓词，不将其解读为严格容器内部检测。
+按用户确认，完整筛查四类各两个候选及 SG6 参照，共九个条件，每个条件 10 次开发初始化。A1/A2 只将墙面改为深蓝/深绿，地面保持 light-gray，并使用原任务初始化；B1B/B1A 替换为 butter/alphabet soup；B2N/B2P 替换为白碗/已有盘子；G1/SG7 分别打开抽屉/打开炉灶。B 类使用生成的初始化，不能称为跨条件相同物理状态。保持官方 On 成功谓词，不将其解读为严格容器内部检测。
 
 当前原模型是 MINT-SJTU/Evo1_LIBERO，视觉语言骨干为 OpenGVLab/InternVL3-1B，已针对 LIBERO 适配；本项目未执行 SFT 或 RL。有效场景即使达到 0/10 或 10/10 也完成并报告，不再因一个候选未通过训练门槛而提前结束其他类别。非法场景单列，不能计为策略失败。
 
@@ -245,13 +245,13 @@ python evaluations/fyp/prepare_variants.py \
 ```bash
 python evaluations/fyp/prepare_variants.py \
   --output-dir "$FYP_STORAGE/variants/sg6-expanded-20261109" \
-  --keys B1B B1A B2N B2R
+  --keys B1B B1A B2N B2P
 python evaluations/fyp/prepare_variants.py \
   --output-dir "$FYP_STORAGE/variants/sg6-expanded-20261109" --validate-goals
 ```
 
 ```bash
---tasks SG6 A1 A2 B1B B1A B2N B2R G1 SG7 \
+--tasks SG6 A1 A2 B1B B1A B2N B2P G1 SG7 \
 --variant-root "$FYP_STORAGE/variants/sg6-expanded-20261109" \
 --episodes 10 --trial-start 0 --num-envs 2
 ```
