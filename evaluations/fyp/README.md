@@ -216,6 +216,8 @@ Run generation within an allocated Slurm GPU job; the output directory must not 
 ```bash
 python evaluations/fyp/prepare_variants.py \
   --output-dir "$FYP_STORAGE/variants/sg6-transfer-v1"
+python evaluations/fyp/prepare_variants.py \
+  --output-dir "$FYP_STORAGE/variants/sg6-transfer-v1" --validate-goals
 ```
 
 ```bash
