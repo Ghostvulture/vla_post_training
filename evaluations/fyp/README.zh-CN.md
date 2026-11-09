@@ -303,3 +303,21 @@ python evaluations/fyp/export_evo1.py \
   --weights "$FYP_STORAGE/results/sg6-grpo-pilot-v1/sg6-grpo-pilot/checkpoints/global_step_2/actor/model_state_dict/full_weights.pt" \
   --output "$FYP_STORAGE/models/sg6-grpo-pilot-step2"
 ```
+
+### 短跑验收结果（2026-11-09）
+
+两轮训练和恢复后的一轮均完成，奖励组存在差异，梯度范数分别5.14、8.23、6.04，无OOM或NaN。第2轮导出模型的97个动作头张量改变，冻结部分变化0。恢复日志确认应用权重版本2，组内8条轨迹使用同一个训练初始化。官方evaluation完成SG6/B2N/B2P各2条开发轨迹并保存录像：曾成功分别1/2、1/2、0/2；结束时成功1/2、0/2、0/2。仅用于加载检查，不作为迁移收益结论。
+
+Slurm 19470/19472/19473均完成，训练侧0.4233 GPU小时、评估侧0.0594 GPU小时。训练结果在`sg6-grpo-pilot-v1`，恢复结果在`sg6-grpo-resume-v1`，加载评估在`sg6-grpo-pilot-step2-smoke`（均位于`$FYP_STORAGE/results`）。正式两方法比较、布局扰动与完整留出评估尚未执行。正式训练须从相同原模型重新开始，短跑模型不能作为其中一组的起点。
+
+在前述单卡评估Slurm作业内使用以下命令复现加载检查，输出目录须换新：
+
+```bash
+bash "$FYP_RUNTIME/fyp-eval-job.sh" \
+  --model-path "$FYP_STORAGE/models/sg6-grpo-pilot-step2" \
+  --tasks SG6 B2N B2P \
+  --variant-root "$FYP_STORAGE/variants/sg6-expanded-20261109" \
+  --episodes 2 --trial-start 0 --num-envs 2 --video \
+  --budget-minutes 20 \
+  --output-dir "$FYP_STORAGE/results/sg6-grpo-pilot-step2-smoke"
+```

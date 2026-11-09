@@ -303,3 +303,21 @@ python evaluations/fyp/export_evo1.py \
   --weights "$FYP_STORAGE/results/sg6-grpo-pilot-v1/sg6-grpo-pilot/checkpoints/global_step_2/actor/model_state_dict/full_weights.pt" \
   --output "$FYP_STORAGE/models/sg6-grpo-pilot-step2"
 ```
+
+### Pilot Validation Results (2026-11-09)
+
+Two training iterations and one resumed iteration completed with mixed-reward groups and gradient norms of 5.14, 8.23, and 6.04, without OOM or NaN. The step-2 export changed 97 action-head tensors and no frozen tensors. Resume logs confirm applied weight version 2 and a shared training initialization across all 8 trajectories in the group. Official evaluation completed two development trajectories each for SG6/B2N/B2P with video: success once was 1/2, 1/2, 0/2; success at end was 1/2, 0/2, 0/2. These are loading checks, not evidence of transfer gains.
+
+Slurm jobs 19470/19472/19473 completed, using 0.4233 GPU hours on the training side and 0.0594 on evaluation. Results are under `$FYP_STORAGE/results`: `sg6-grpo-pilot-v1`, `sg6-grpo-resume-v1`, and `sg6-grpo-pilot-step2-smoke`. The matched-method comparison, layout perturbations, and full held-out evaluation have not run. Formal training must restart both conditions from the same original model; neither may start from a pilot checkpoint.
+
+Within the single-GPU evaluation Slurm job described above, reproduce the loading check with the command below and a fresh output directory:
+
+```bash
+bash "$FYP_RUNTIME/fyp-eval-job.sh" \
+  --model-path "$FYP_STORAGE/models/sg6-grpo-pilot-step2" \
+  --tasks SG6 B2N B2P \
+  --variant-root "$FYP_STORAGE/variants/sg6-expanded-20261109" \
+  --episodes 2 --trial-start 0 --num-envs 2 --video \
+  --budget-minutes 20 \
+  --output-dir "$FYP_STORAGE/results/sg6-grpo-pilot-step2-smoke"
+```
