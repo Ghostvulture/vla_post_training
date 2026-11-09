@@ -388,3 +388,17 @@ bash evaluations/fyp/prepare_pi05_base.sh
 ```
 
 `rlinf-pi05-check` 环境通过 `.pth` 读取已有 Evo-1 依赖，新增依赖安装在自身目录中；它不是完全独立的依赖副本，保留原环境以保证可复现。转换保留50步动作预测长度、32维内部动作和200 token配置。原始Franka归一化统计原样复制，不当作LIBERO统计使用。转换输出存在时拒绝覆盖，先检查失败日志。此阶段尚未验证模型推理或环境控制。
+
+转换已在 Slurm 作业 19488 中完成。下一步用单卡检查权重加载和两次合成输入推理：
+
+```bash
+source "$HOME/.config/fyp/evo1-env.sh"
+cd "$HOME/RLinf"
+sbatch --wait --parsable --partition=GPU --nodelist="$FYP_NODE" \
+  --gres=gpu:4090:1 --cpus-per-task=8 --time=00:30:00 \
+  --job-name=fyp-pi05-infer \
+  --output="$FYP_STORAGE/results/pi05-base-check/inference-%j.log" \
+  evaluations/fyp/check_pi05_inference_job.sh
+```
+
+JSON 报告记录输出有限性、耗时和峰值显存。合成图像及 token ID 不能验证语言处理、LIBERO 控制或任务成功率；这一步不运行环境轨迹。

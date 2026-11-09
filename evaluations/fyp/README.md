@@ -388,3 +388,17 @@ bash evaluations/fyp/prepare_pi05_base.sh
 ```
 
 The `rlinf-pi05-check` environment reads existing Evo-1 dependencies through a `.pth` file and installs additions into its own directory. It is not a fully independent dependency copy; preserve the source environment for reproducibility. Conversion retains a 50-step action horizon, 32 internal action dimensions, and 200 tokens. Original Franka normalization is copied unchanged, not treated as LIBERO normalization. Existing conversion output is never overwritten; inspect failure logs before retrying. This stage does not yet validate policy inference or environment control.
+
+Conversion completed in Slurm job 19488. Next, check weight loading and two synthetic inference passes on one GPU:
+
+```bash
+source "$HOME/.config/fyp/evo1-env.sh"
+cd "$HOME/RLinf"
+sbatch --wait --parsable --partition=GPU --nodelist="$FYP_NODE" \
+  --gres=gpu:4090:1 --cpus-per-task=8 --time=00:30:00 \
+  --job-name=fyp-pi05-infer \
+  --output="$FYP_STORAGE/results/pi05-base-check/inference-%j.log" \
+  evaluations/fyp/check_pi05_inference_job.sh
+```
+
+The JSON report records finite outputs, latency and peak GPU memory. Synthetic images and token IDs do not validate language processing, LIBERO control or task success; this check runs zero environment episodes.
