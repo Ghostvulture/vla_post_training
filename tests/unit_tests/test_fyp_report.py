@@ -203,6 +203,18 @@ class TestFypReport(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Overlapping trial IDs"):
             report.summarize_runs([smoke, screen])
 
+    def test_variants_with_same_source_task_are_separate_groups(self):
+        root = self.root / "variants"
+        for key in ("B1B", "B2P"):
+            directory = root / key
+            directory.mkdir(parents=True)
+            (directory / "console.log").write_text(_line(0))
+            report.inspect_task(directory, {**_TASK, "key": key}, [0], 0, 1.0)
+        (root / "run.json").write_text(json.dumps(_METADATA))
+        summaries = report.summarize_runs([root])
+        self.assertEqual(len(summaries), 2)
+        self.assertEqual({s["task"]["key"] for s in summaries}, {"B1B", "B2P"})
+
     def test_metadata_changes_and_missing_metadata_are_rejected(self):
         first, _ = self.batch("first", [0])
         second, _ = self.batch("second", [1])
