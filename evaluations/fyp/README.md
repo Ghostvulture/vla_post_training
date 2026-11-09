@@ -376,3 +376,15 @@ python evaluations/fyp/download_pi05_base.py \
 ```
 
 A completed download does not validate policy behavior or success rates. The source weights use JAX; conversion will reuse RLinf’s `jax_to_openpi` tool. Included assets cover Franka/DROID and other embodiments, but not LIBERO. Establish state/action semantics before evaluation instead of silently borrowing LIBERO-finetuned normalization. Keep the existing Evo-1 environment separate.
+
+The official download is complete (29 files, 12.44 GB). If the server cannot resolve Google Storage, forward the existing local proxy for the SSH session with `-R 127.0.0.1:17890:127.0.0.1:7890` and set `HTTPS_PROXY=http://127.0.0.1:17890` and `HTTP_PROXY=http://127.0.0.1:17890` only for the remote command. Keep TLS verification enabled; the tunnel closes with SSH.
+
+Next, create the conversion environment and submit a 30-minute Slurm job with eight CPUs and no GPU:
+
+```bash
+source "$HOME/.config/fyp/evo1-env.sh"
+cd "$HOME/RLinf"
+bash evaluations/fyp/prepare_pi05_base.sh
+```
+
+The `rlinf-pi05-check` environment reads existing Evo-1 dependencies through a `.pth` file and installs additions into its own directory. It is not a fully independent dependency copy; preserve the source environment for reproducibility. Conversion retains a 50-step action horizon, 32 internal action dimensions, and 200 tokens. Original Franka normalization is copied unchanged, not treated as LIBERO normalization. Existing conversion output is never overwritten; inspect failure logs before retrying. This stage does not yet validate policy inference or environment control.

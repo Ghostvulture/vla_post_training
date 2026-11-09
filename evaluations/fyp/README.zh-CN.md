@@ -376,3 +376,15 @@ python evaluations/fyp/download_pi05_base.py \
 ```
 
 下载成功仅表示文件齐全，不能作为模型或成功率验证。原始权重为 JAX 格式，后续复用 RLinf 的 `jax_to_openpi` 转换工具。随附 Franka/DROID 等统计，没有 LIBERO 统计；评估前必须确定正确的状态和动作语义，不静默借用 LIBERO 微调版统计。现有 Evo-1 环境保持独立。
+
+官方下载已完成（29个文件，12.44 GB）。服务器无法解析 Google Storage 时，可在本机 SSH 会话中转发已有代理：`-R 127.0.0.1:17890:127.0.0.1:7890`，并仅在该远程命令中设置 `HTTPS_PROXY=http://127.0.0.1:17890` 和 `HTTP_PROXY=http://127.0.0.1:17890`；保持 TLS 校验，SSH 退出即关闭通路。
+
+下一阶段创建独立转换环境并提交30分钟、8 CPU、无 GPU 的 Slurm 转换作业：
+
+```bash
+source "$HOME/.config/fyp/evo1-env.sh"
+cd "$HOME/RLinf"
+bash evaluations/fyp/prepare_pi05_base.sh
+```
+
+`rlinf-pi05-check` 环境通过 `.pth` 读取已有 Evo-1 依赖，新增依赖安装在自身目录中；它不是完全独立的依赖副本，保留原环境以保证可复现。转换保留50步动作预测长度、32维内部动作和200 token配置。原始Franka归一化统计原样复制，不当作LIBERO统计使用。转换输出存在时拒绝覆盖，先检查失败日志。此阶段尚未验证模型推理或环境控制。
