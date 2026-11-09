@@ -102,6 +102,11 @@ def test_commands_compose_with_official_hydra_config(tmp_path, monkeypatch):
                 config_name="libero_spatial_evo1_eval", overrides=command[4:]
             )
         assert dict(cfg.cluster.component_placement) == {"env": 2, "rollout": 2}
+        if task.get("scene_properties"):
+            assert (
+                dict(cfg.env.eval.init_params.scene_properties)
+                == task["scene_properties"]
+            )
         assert cfg.env.eval.task_suite_name == task["suite"]
         assert cfg.env.eval.task_id_filter == [3]
         assert cfg.env.eval.eval_trial_ids == list(range(10, 20))
@@ -180,5 +185,9 @@ def test_variant_changes_preserve_unrelated_scene_objects():
     changed = variant_bddl(source, "B2P")
     assert "(On cream_cheese_1 plate_1)" in changed
     assert "cream_cheese_1 - cream_cheese" in changed
+    for key, target in [("B2N", "white_bowl"), ("B2R", "glazed_rim_porcelain_ramekin")]:
+        changed = variant_bddl(source, key)
+        assert f"(On cream_cheese_1 {target}_1)" in changed
+        assert "wine_bottle_1 - wine_bottle" in changed
     with pytest.raises(ValueError):
         variant_bddl(source, "unknown")

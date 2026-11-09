@@ -233,3 +233,25 @@ No RL training was started. The only valid receptacle candidate, B2P (cream chee
 Scores are in `$FYP_STORAGE/results/sg6-transfer-container-v2`; the gate report is `$FYP_STORAGE/results/sg6-transfer-gate-v2.json`. `sg6-transfer-screen-v1` was cancelled and is not scored. `sg6-transfer-container-video-v2` replays initializations for diagnosis and adds no screening samples.
 
 The environment now accepts `env.train.train_trial_ids`, disallowing evaluation mode or a fixed reset ID with that option. Layout randomization, training launch configurations, checkpoint recovery, and the three-policy comparison have not been executed or accepted. No unverified training commands are provided. Revise task pairing before proceeding; this result does not establish absence of RL transfer.
+
+## Expanded Original-Model Screening
+
+Screen two candidates in each of four categories plus SG6, with 10 development initializations per condition. A1/A2 change only the wall to dark-blue/dark-green, keep the light-gray floor, and reuse original task states. B1B/B1A replace the object with butter/alphabet soup; B2N/B2R replace the bowl with a white bowl/porcelain ramekin. G1/SG7 open a drawer/turn on the stove. B conditions use generated states, not identical physical states across conditions. Preserve the official On predicate; it is not a strict containment test.
+
+The original model is MINT-SJTU/Evo1_LIBERO with the OpenGVLab/InternVL3-1B backbone, already adapted to LIBERO. This project has performed no SFT or RL. Complete all valid candidates even at 0/10 or 10/10; a failed training-selection gate no longer stops the other categories. Report invalid scenes separately from policy failures.
+
+Generate and validate the four B variants within a Slurm GPU job, then pass the second block to the evaluation launcher using the sbatch workflow above. The output directory must not exist; preserve earlier screening results.
+
+```bash
+python evaluations/fyp/prepare_variants.py \
+  --output-dir "$FYP_STORAGE/variants/sg6-expanded-20261109" \
+  --keys B1B B1A B2N B2R
+python evaluations/fyp/prepare_variants.py \
+  --output-dir "$FYP_STORAGE/variants/sg6-expanded-20261109" --validate-goals
+```
+
+```bash
+--tasks SG6 A1 A2 B1B B1A B2N B2R G1 SG7 \
+--variant-root "$FYP_STORAGE/variants/sg6-expanded-20261109" \
+--episodes 10 --trial-start 0 --num-envs 2
+```

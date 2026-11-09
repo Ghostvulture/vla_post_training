@@ -233,3 +233,25 @@ python evaluations/fyp/prepare_variants.py \
 完整成绩在 `$FYP_STORAGE/results/sg6-transfer-container-v2`，准入报告在 `$FYP_STORAGE/results/sg6-transfer-gate-v2.json`。`sg6-transfer-screen-v1` 是取消的旧批次，不计分；`sg6-transfer-container-video-v2` 是重复初始化的视频复核，不增加筛查样本。
 
 训练初始化白名单 `env.train.train_trial_ids` 已加入环境接口，不能与评估模式或固定 reset ID 混用。布局随机化、训练启动配置、checkpoint 恢复与三模型比较尚未执行或验收；本页没有提供未经验证的训练命令。先修订任务配对，再继续这些步骤。此结果不能证明 RL 没有迁移能力。
+
+## 扩展原模型筛查
+
+按用户确认，完整筛查四类各两个候选及 SG6 参照，共九个条件，每个条件 10 次开发初始化。A1/A2 只将墙面改为深蓝/深绿，地面保持 light-gray，并使用原任务初始化；B1B/B1A 替换为 butter/alphabet soup；B2N/B2R 替换为白碗/瓷烤盅；G1/SG7 分别打开抽屉/打开炉灶。B 类使用生成的初始化，不能称为跨条件相同物理状态。保持官方 On 成功谓词，不将其解读为严格容器内部检测。
+
+当前原模型是 MINT-SJTU/Evo1_LIBERO，视觉语言骨干为 OpenGVLab/InternVL3-1B，已针对 LIBERO 适配；本项目未执行 SFT 或 RL。有效场景即使达到 0/10 或 10/10 也完成并报告，不再因一个候选未通过训练门槛而提前结束其他类别。非法场景单列，不能计为策略失败。
+
+在 Slurm GPU 作业内生成并验证四个 B 变体，然后按前文 sbatch 流程给评估启动脚本传入第二段参数。输出目录必须尚不存在；保留旧筛选结果。
+
+```bash
+python evaluations/fyp/prepare_variants.py \
+  --output-dir "$FYP_STORAGE/variants/sg6-expanded-20261109" \
+  --keys B1B B1A B2N B2R
+python evaluations/fyp/prepare_variants.py \
+  --output-dir "$FYP_STORAGE/variants/sg6-expanded-20261109" --validate-goals
+```
+
+```bash
+--tasks SG6 A1 A2 B1B B1A B2N B2R G1 SG7 \
+--variant-root "$FYP_STORAGE/variants/sg6-expanded-20261109" \
+--episodes 10 --trial-start 0 --num-envs 2
+```

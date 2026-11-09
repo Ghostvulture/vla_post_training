@@ -137,6 +137,13 @@ def build_command(
         f"runner.logger.log_path={json.dumps(str(output))}",
         f"runner.logger.experiment_name=fyp_{task['key']}",
     ]
+    if task.get("scene_properties"):
+        props = task["scene_properties"]
+        command.append(
+            "+env.eval.init_params.scene_properties={"
+            + ",".join(f"{key}:{value}" for key, value in props.items())
+            + "}"
+        )
     if task.get("variant"):
         if args.variant_root is None:
             raise ValueError("Variant tasks require --variant-root")

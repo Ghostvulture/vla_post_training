@@ -24,7 +24,12 @@ from pathlib import Path
 def variant_bddl(source: str, key: str) -> str:
     """Change one target identity while retaining the SG6 scene and regions."""
     objects = {"B1B": "butter", "B1A": "alphabet_soup", "B1T": "tomato_sauce"}
-    containers = {"B2W": "wooden_tray", "B2B": "basket"}
+    containers = {
+        "B2W": "wooden_tray",
+        "B2B": "basket",
+        "B2N": "white_bowl",
+        "B2R": "glazed_rim_porcelain_ramekin",
+    }
     if key in objects:
         name = objects[key]
         text = source.replace("cream_cheese", name)
@@ -55,7 +60,13 @@ def validate_goals(root):
     from PIL import Image
 
     sources = {"B1B": "butter_1", "B1A": "alphabet_soup_1", "B1T": "tomato_sauce_1"}
-    targets = {"B2P": "plate_1", "B2W": "wooden_tray_1", "B2B": "basket_1"}
+    targets = {
+        "B2P": "plate_1",
+        "B2W": "wooden_tray_1",
+        "B2B": "basket_1",
+        "B2N": "white_bowl_1",
+        "B2R": "glazed_rim_porcelain_ramekin_1",
+    }
     for directory in sorted(root.iterdir()):
         if not (directory / "validation.json").is_file():
             continue
@@ -146,6 +157,12 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--validate-goals", action="store_true")
+    parser.add_argument(
+        "--keys",
+        nargs="+",
+        default=["B1B", "B1A", "B1T", "B2P", "B2W", "B2B"],
+        choices=["B1B", "B1A", "B1T", "B2P", "B2W", "B2B", "B2N", "B2R"],
+    )
     args = parser.parse_args()
     if args.validate_goals:
         validate_goals(args.output_dir)
@@ -162,7 +179,7 @@ def main():
         / "libero_goal/put_the_cream_cheese_in_the_bowl.bddl"
     )
     commit = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
-    for key in ("B1B", "B1A", "B1T", "B2P", "B2W", "B2B"):
+    for key in args.keys:
         directory = args.output_dir / key
         directory.mkdir()
         bddl = directory / "task.bddl"

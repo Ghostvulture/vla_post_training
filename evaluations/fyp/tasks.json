@@ -112,5 +112,39 @@
     "name": "put_the_cream_cheese_in_the_bowl",
     "label": "cream cheese to basket",
     "variant": "B2B"
+  },
+  {
+    "key": "B2N",
+    "suite": "libero_goal",
+    "name": "put_the_cream_cheese_in_the_bowl",
+    "label": "cream cheese 放入白碗",
+    "variant": "B2N"
+  },
+  {
+    "key": "B2R",
+    "suite": "libero_goal",
+    "name": "put_the_cream_cheese_in_the_bowl",
+    "label": "cream cheese 放入瓷盅",
+    "variant": "B2R"
+  },
+  {
+    "key": "A1",
+    "suite": "libero_goal",
+    "name": "put_the_cream_cheese_in_the_bowl",
+    "label": "原任务，深蓝色背景墙",
+    "scene_properties": {
+      "floor_style": "light-gray",
+      "wall_style": "dark-blue"
+    }
+  },
+  {
+    "key": "A2",
+    "suite": "libero_goal",
+    "name": "put_the_cream_cheese_in_the_bowl",
+    "label": "原任务，深绿色背景墙",
+    "scene_properties": {
+      "floor_style": "light-gray",
+      "wall_style": "dark-green"
+    }
   }
 ]
