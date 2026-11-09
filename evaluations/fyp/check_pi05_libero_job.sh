@@ -3,6 +3,7 @@ set -euo pipefail
 source "$HOME/.config/fyp/evo1-env.sh"
 source "$FYP_RUNTIME/envs/rlinf-pi05-check/bin/activate"
 export TMPDIR=/tmp JAX_PLATFORMS=cpu PYTHONUNBUFFERED=1
+export OPENPI_DATA_HOME="$FYP_RUNTIME/cache/openpi"
 export RAY_ADDRESS=local RAY_DEDUP_LOGS=0
 export RAY_TMPDIR
 RAY_TMPDIR=$(mktemp -d /tmp/fyp-pi05-ray-XXXXXX)
