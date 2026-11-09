@@ -225,3 +225,11 @@ python evaluations/fyp/prepare_variants.py \
 --variant-root "$FYP_STORAGE/variants/sg6-transfer-v1" \
 --episodes 10 --trial-start 0
 ```
+
+### Screening outcome on 2026-11-09
+
+No RL training was started. The only valid receptacle candidate, B2P (cream cheese onto the existing plate in the same scene), achieved success_once in 1/10 development trials and success_at_end in 0/10, below the predefined 2–8/10 gate. The wooden tray B2W had substantial contact penetration. Basket B2B displaced the wine bottle during initialization despite passing the final settled contact check. Validation now checks penetration and planar displacement during settling, plus a feasible success-predicate witness. Three object variants passed environment checks but were not scored once the receptacle side could no longer yield an eligible pair.
+
+Scores are in `$FYP_STORAGE/results/sg6-transfer-container-v2`; the gate report is `$FYP_STORAGE/results/sg6-transfer-gate-v2.json`. `sg6-transfer-screen-v1` was cancelled and is not scored. `sg6-transfer-container-video-v2` replays initializations for diagnosis and adds no screening samples.
+
+The environment now accepts `env.train.train_trial_ids`, disallowing evaluation mode or a fixed reset ID with that option. Layout randomization, training launch configurations, checkpoint recovery, and the three-policy comparison have not been executed or accepted. No unverified training commands are provided. Revise task pairing before proceeding; this result does not establish absence of RL transfer.

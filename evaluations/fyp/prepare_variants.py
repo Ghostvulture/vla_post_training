@@ -102,6 +102,9 @@ def validate_goals(root):
                         "valid": worst_contact > -0.005 and max_motion < 0.02,
                     }
                 )
+            record["validation_git_commit"] = subprocess.check_output(
+                ["git", "rev-parse", "HEAD"], text=True
+            ).strip()
             record["settling_checks"] = stability
             record["settling_valid"] = all(row["valid"] for row in stability)
             env.set_init_state(states[0])
@@ -126,7 +129,14 @@ def validate_goals(root):
                 directory / "goal-witness.png"
             )
             (directory / "validation.json").write_text(json.dumps(record, indent=2))
-            print(directory.name, "goal witness", success, flush=True)
+            print(
+                directory.name,
+                "settling",
+                record["settling_valid"],
+                "goal witness",
+                success,
+                flush=True,
+            )
         finally:
             env.close()
 

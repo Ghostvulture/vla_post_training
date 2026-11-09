@@ -225,3 +225,11 @@ python evaluations/fyp/prepare_variants.py \
 --variant-root "$FYP_STORAGE/variants/sg6-transfer-v1" \
 --episodes 10 --trial-start 0
 ```
+
+### 2026-11-09 筛选结果与停止原因
+
+本轮未启动 RL。唯一有效容器候选 B2P（同场景 cream cheese 放盘子）在开发状态 0–9 上曾成功 1/10，最后成功 0/10，没有达到预设 2–8/10 门槛。B2W 木托盘存在明显接触穿透；B2B 篮子会在初始化时挤飞酒瓶，即使静置后的接触检查通过也无效。生成器现检查静置过程的穿透和水平位移，并验证成功谓词可满足。三个物体候选通过环境检查，但因容器侧已无法组成配对，没有继续消耗算力评分。
+
+完整成绩在 `$FYP_STORAGE/results/sg6-transfer-container-v2`，准入报告在 `$FYP_STORAGE/results/sg6-transfer-gate-v2.json`。`sg6-transfer-screen-v1` 是取消的旧批次，不计分；`sg6-transfer-container-video-v2` 是重复初始化的视频复核，不增加筛查样本。
+
+训练初始化白名单 `env.train.train_trial_ids` 已加入环境接口，不能与评估模式或固定 reset ID 混用。布局随机化、训练启动配置、checkpoint 恢复与三模型比较尚未执行或验收；本页没有提供未经验证的训练命令。先修订任务配对，再继续这些步骤。此结果不能证明 RL 没有迁移能力。
