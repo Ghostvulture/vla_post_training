@@ -319,3 +319,23 @@ def test_pi05_download_resumes_exact_generation(tmp_path, monkeypatch):
     assert requests[0].headers["Range"] == "bytes=3-"
     downloader.download(item, tmp_path)
     assert len(requests) == 1
+
+
+def test_pi05_base_calibration_keeps_base_shape(tmp_path, monkeypatch):
+    hydra = pytest.importorskip("hydra")
+    monkeypatch.setenv("EMBODIED_PATH", str(ROOT / "examples/embodiment"))
+    monkeypatch.setenv("FYP_STORAGE", str(tmp_path))
+    with hydra.initialize_config_dir(
+        config_dir=str(ROOT / "evaluations/libero"), version_base=None
+    ):
+        cfg = hydra.compose(config_name="libero_pi05_base_calibrated_eval")
+    assert cfg.rollout.model.openpi.action_horizon == 50
+    assert cfg.rollout.model.openpi.discrete_state_input is True
+    assert cfg.rollout.model.openpi.task == "eval"
+    assert cfg.rollout.model.num_action_chunks == 5
+    assert cfg.rollout.model.num_steps == 10
+    assert cfg.rollout.model.openpi_data.norm_stats_path.endswith(
+        "pi05_libero_calibration/norm_stats.json"
+    )
+    assert list(cfg.env.eval.eval_trial_ids) == [0, 1]
+    assert cfg.env.eval.total_num_envs * cfg.env.eval.rollout_epoch == 2

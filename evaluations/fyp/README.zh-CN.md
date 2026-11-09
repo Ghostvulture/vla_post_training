@@ -414,3 +414,16 @@ source "$HOME/.config/fyp/evo1-env.sh"
 cd "$HOME/RLinf"
 bash evaluations/fyp/prepare_pi05_calibration.sh
 ```
+
+首次校准评估检查 SG6 的开发初始化 0、1，保存视频，任务时限为 350 步。base 专用预处理配置保留离散状态 token 和 50 步预测长度，使用 10 次去噪、每次执行 5 步动作。Pydantic 固定为 2.10.6，以兼容 numpydantic 1.6.6。先完成准备再分配 GPU；按实际完成轨迹验收，不把命令执行成功当作任务成功。
+
+```bash
+source "$HOME/.config/fyp/evo1-env.sh"
+cd "$HOME/RLinf"
+bash evaluations/fyp/prepare_pi05_calibration.sh
+sbatch --wait --parsable --partition=GPU --nodelist="$FYP_NODE" \
+  --gres=gpu:4090:1 --cpus-per-task=8 --time=00:30:00 \
+  --job-name=fyp-pi05-libero \
+  --output="$FYP_STORAGE/results/pi05-base-check/libero-%j.log" \
+  evaluations/fyp/check_pi05_libero_job.sh
+```

@@ -12,7 +12,7 @@ uv pip install --python "$pi_python" \
   'numpy==1.26.4' 'jax==0.5.3' 'jaxlib==0.5.3' 'orbax-checkpoint==0.11.13' \
   'flax==0.10.2' 'chex==0.1.90' 'optax==0.2.4' 'equinox==0.11.12' \
   'augmax==0.3.4' 'beartype==0.19.0' 'jaxtyping==0.2.36' \
-  'ml-collections==1.0.0' 'numpydantic==1.6.6' 'tyro==0.9.5' \
+  'ml-collections==1.0.0' 'numpydantic==1.6.6' 'pydantic==2.10.6' 'tyro==0.9.5' \
   'openpi-client' 'polars' 'treescope' 'gcsfs' 'tqdm-loggable'
 export PYTHONPATH="$PWD${PYTHONPATH:+:$PYTHONPATH}"
 "$pi_python" - <<'PY'
@@ -49,7 +49,7 @@ path.write_bytes(raw)
 print('Saved public LIBERO calibration statistics', flush=True)
 from rlinf.models.embodiment.openpi.dataconfig import get_openpi_config
 from openpi.models.tokenizer import PaligemmaTokenizer
-get_openpi_config('pi05_libero')
+get_openpi_config('pi05_base_libero_calibrated')
 PaligemmaTokenizer(200)
 print('Preprocessing imports and tokenizer initialization passed', flush=True)
 PY

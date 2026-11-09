@@ -113,6 +113,17 @@ _CONFIGS = [
         pytorch_weight_path="checkpoints/torch/pi0_base",
     ),
     TrainConfig(
+        name="pi05_base_libero_calibrated",
+        model=pi0_config.Pi0Config(
+            pi05=True, action_horizon=50, discrete_state_input=True
+        ),
+        data=LeRobotLiberoDataConfig(
+            repo_id="physical-intelligence/libero",
+            base_config=DataConfig(prompt_from_task=True),
+            extra_delta_transform=False,
+        ),
+    ),
+    TrainConfig(
         name="pi05_libero",
         model=pi0_config.Pi0Config(
             pi05=True, action_horizon=10, discrete_state_input=False

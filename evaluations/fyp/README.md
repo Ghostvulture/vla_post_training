@@ -414,3 +414,16 @@ source "$HOME/.config/fyp/evo1-env.sh"
 cd "$HOME/RLinf"
 bash evaluations/fyp/prepare_pi05_calibration.sh
 ```
+
+The first calibrated rollout checks SG6 development states 0 and 1, records videos, and uses a 350-step limit. The base-specific preprocessing config retains discrete state tokens and a 50-step prediction horizon, with 10 denoising steps and 5 executed actions per call. Pydantic is pinned to 2.10.6 for numpydantic 1.6.6 compatibility. Run preparation before allocating a GPU; inspect completed trajectories rather than treating command success as task success.
+
+```bash
+source "$HOME/.config/fyp/evo1-env.sh"
+cd "$HOME/RLinf"
+bash evaluations/fyp/prepare_pi05_calibration.sh
+sbatch --wait --parsable --partition=GPU --nodelist="$FYP_NODE" \
+  --gres=gpu:4090:1 --cpus-per-task=8 --time=00:30:00 \
+  --job-name=fyp-pi05-libero \
+  --output="$FYP_STORAGE/results/pi05-base-check/libero-%j.log" \
+  evaluations/fyp/check_pi05_libero_job.sh
+```

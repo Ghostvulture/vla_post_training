@@ -1,0 +1,27 @@
+defaults:
+  - libero_spatial_openpi_pi05_eval
+  - _self_
+
+env:
+  eval:
+    task_suite_name: libero_goal
+    total_num_envs: 1
+    rollout_epoch: 2
+    max_episode_steps: 350
+    max_steps_per_rollout_epoch: 350
+    use_ordered_reset_state_ids: true
+    eval_trial_ids: [0, 1]
+    seed: 0
+
+rollout:
+  model:
+    model_path: ${oc.env:FYP_STORAGE}/models/pi05_base_openpi
+    num_action_chunks: 5
+    num_steps: 10
+    openpi:
+      config_name: pi05_base_libero_calibrated
+      action_horizon: 50
+      discrete_state_input: true
+      torch_compile: false
+    openpi_data:
+      norm_stats_path: ${oc.env:FYP_STORAGE}/models/pi05_libero_calibration/norm_stats.json
