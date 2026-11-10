@@ -463,3 +463,15 @@ sbatch --wait --parsable --partition=GPU --nodelist="$FYP_NODE" \
   --output="$FYP_STORAGE/results/pi05-base-check/control-convert-%j.log" \
   evaluations/fyp/convert_pi05_libero_job.sh
 ```
+
+Run the adapted positive control on S1/O2/G1, five development states each. This loads the official pi05_libero converted weights and their own statistics, with a 10-step horizon and no discrete state tokens. Results use `control-<job>-<task>` directories and must not be merged with base screening. Both conditions execute five actions per call with ten denoising steps and a 350-step limit. This is a pipeline diagnostic, not an equal-checkpoint comparison.
+
+```bash
+source "$HOME/.config/fyp/evo1-env.sh"
+cd "$HOME/RLinf"
+sbatch --wait --parsable --partition=GPU --nodelist="$FYP_NODE" \
+  --gres=gpu:4090:1 --cpus-per-task=8 --time=00:45:00 \
+  --job-name=fyp-pi05-control \
+  --output="$FYP_STORAGE/results/pi05-base-check/control-%j.log" \
+  evaluations/fyp/screen_pi05_libero_job.sh control
+```

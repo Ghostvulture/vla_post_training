@@ -463,3 +463,15 @@ sbatch --wait --parsable --partition=GPU --nodelist="$FYP_NODE" \
   --output="$FYP_STORAGE/results/pi05-base-check/control-convert-%j.log" \
   evaluations/fyp/convert_pi05_libero_job.sh
 ```
+
+正对照在 S1/O2/G1 各跑 5 个开发初始化。加载官方 pi05_libero 转换权重及其随附统计，预测长度为 10，关闭离散状态 token。结果目录为 `control-<job>-<task>`，不得与 base 筛查合并。两种条件均每次执行 5 步动作、使用 10 次去噪和 350 步时限。这是执行链路诊断，不是同 checkpoint 的方法对比。
+
+```bash
+source "$HOME/.config/fyp/evo1-env.sh"
+cd "$HOME/RLinf"
+sbatch --wait --parsable --partition=GPU --nodelist="$FYP_NODE" \
+  --gres=gpu:4090:1 --cpus-per-task=8 --time=00:45:00 \
+  --job-name=fyp-pi05-control \
+  --output="$FYP_STORAGE/results/pi05-base-check/control-%j.log" \
+  evaluations/fyp/screen_pi05_libero_job.sh control
+```
