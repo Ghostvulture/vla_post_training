@@ -488,3 +488,7 @@ sbatch --wait --parsable --partition=GPU --nodelist="$FYP_NODE" \
   --output="$FYP_STORAGE/results/evo-transfer-screen-%j.log" \
   evaluations/fyp/screen_evo_transfer_job.sh
 ```
+
+Evo 补充筛查已完成（Slurm 19653，Git e207528a，用时 13 分 37 秒）。40 条筛查轨迹全部完成，无环境错误：SG6/B2N/B2P 在开发初始化 10–19 上的 success_once 分别为 9/10、7/10、0/10，success_at_end 分别为 5/10、1/10、0/10；B1T 在 0–9 上两个指标均为 0/10。另六条录像诊断重复初始化 10–11，不增加独立样本数，且单环境重跑结果与双环境筛查不完全一致。保留各批次独立报告，不用重跑替换原成绩。
+
+B2N 是当前最有希望的换容器候选，但曾经成功与结束成功差距较大。B2P 较难，换物体 B1T 尚未观察到成功。原定两个适中难度 B 的筛选门槛尚未充分满足，因此停在筛查，未启动 RL。结果和录像位于 `$FYP_STORAGE/results/evo-transfer-screen-19653`；验证及测试池未使用。
