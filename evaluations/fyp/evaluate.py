@@ -120,7 +120,7 @@ def build_command(
         "libero",
         PROTOCOL["config"],
         "~cluster.component_placement",
-        f"+cluster.component_placement={{env:{args.gpu},rollout:{args.gpu}}}",
+        f"+cluster.component_placement={{env:{physical_gpu(args.gpu)},rollout:{physical_gpu(args.gpu)}}}",
         f"env.eval.task_suite_name={task['suite']}",
         f"+env.eval.task_id_filter=[{task['task_id']}]",
         f"+env.eval.eval_trial_ids={json.dumps(trial_ids, separators=(',', ':'))}",

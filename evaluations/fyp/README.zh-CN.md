@@ -477,3 +477,14 @@ sbatch --wait --parsable --partition=GPU --nodelist="$FYP_NODE" \
 ```
 
 官方 pi05_libero 正对照已完成（Slurm 19568，Git 33040d70，用时 13 分 42 秒）。S1/O2/G1 各 5 条匹配开发初始化：success_once 均 5/5；success_at_end 分别为 3/5、5/5、5/5。S1 的初始化 0、1 成功后继续执行，结束时已不成功。对应 base 均 0/5。代表视频采样帧显示有效抓放/开抽屉。共同执行链路可完成任务，但由于预测长度及离散状态配置不同，这不是仅更换权重的消融，也不能完全排除 base 特有问题。原始结果在 `$FYP_STORAGE/results/pi05-base-check/control-19568-{S1,O2,G1}`；未启动训练。
+
+Evo 迁移补充筛查：SG6/B2N/B2P 使用开发初始化 10–19，B1T 使用 sg6-transfer-v1 的 0–9。最后另跑六次录像诊断，重复 10–11，不能当作新增独立初始化计入样本量。不训练，不使用验证/测试池。
+
+```bash
+source "$HOME/.config/fyp/evo1-env.sh"
+cd "$HOME/RLinf"
+sbatch --wait --parsable --partition=GPU --nodelist="$FYP_NODE" \
+  --gres=gpu:4090:1 --cpus-per-task=8 --time=00:55:00 \
+  --output="$FYP_STORAGE/results/evo-transfer-screen-%j.log" \
+  evaluations/fyp/screen_evo_transfer_job.sh
+```

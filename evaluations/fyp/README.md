@@ -477,3 +477,14 @@ sbatch --wait --parsable --partition=GPU --nodelist="$FYP_NODE" \
 ```
 
 Official pi05_libero positive control completed (Slurm 19568, Git 33040d70, 13m42s). S1/O2/G1 each completed five matched development states: success_once 5/5 for each, success_at_end 3/5, 5/5 and 5/5 respectively. S1 states 0 and 1 lost success during continued execution. Base scored 0/5 on each. Representative video frames show effective manipulation. The shared execution stack can solve these tasks, but different horizon/state-token settings mean this is not a weights-only ablation and cannot rule out base-specific problems. Raw results: `$FYP_STORAGE/results/pi05-base-check/control-19568-{S1,O2,G1}`. No training started.
+
+Evo transfer screening supplement: SG6/B2N/B2P development IDs 10–19, plus B1T IDs 0–9 from sg6-transfer-v1. The final six video diagnostic attempts repeat IDs 10–11 and must not be counted as new independent initialization states. No training; validation/test pools remain unused.
+
+```bash
+source "$HOME/.config/fyp/evo1-env.sh"
+cd "$HOME/RLinf"
+sbatch --wait --parsable --partition=GPU --nodelist="$FYP_NODE" \
+  --gres=gpu:4090:1 --cpus-per-task=8 --time=00:55:00 \
+  --output="$FYP_STORAGE/results/evo-transfer-screen-%j.log" \
+  evaluations/fyp/screen_evo_transfer_job.sh
+```
