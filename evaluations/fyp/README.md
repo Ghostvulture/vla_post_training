@@ -475,3 +475,5 @@ sbatch --wait --parsable --partition=GPU --nodelist="$FYP_NODE" \
   --output="$FYP_STORAGE/results/pi05-base-check/control-%j.log" \
   evaluations/fyp/screen_pi05_libero_job.sh control
 ```
+
+Official pi05_libero positive control completed (Slurm 19568, Git 33040d70, 13m42s). S1/O2/G1 each completed five matched development states: success_once 5/5 for each, success_at_end 3/5, 5/5 and 5/5 respectively. S1 states 0 and 1 lost success during continued execution. Base scored 0/5 on each. Representative video frames show effective manipulation. The shared execution stack can solve these tasks, but different horizon/state-token settings mean this is not a weights-only ablation and cannot rule out base-specific problems. Raw results: `$FYP_STORAGE/results/pi05-base-check/control-19568-{S1,O2,G1}`. No training started.
