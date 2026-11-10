@@ -429,3 +429,15 @@ sbatch --wait --parsable --partition=GPU --nodelist="$FYP_NODE" \
 ```
 
 Slurm 作业 19494 完成了两条不同的 SG6 开发轨迹（初始化 0、1）：success_once 为 0/2，success_at_end 为 0/2，均达到 350 步，日志未见环境报错。轨迹耗时分别为 38.794、38.244 秒；单卡总占用为 165 秒。视频采样帧显示机械臂移动，但未见抓起目标或完成放置。这验证了执行链路可运行，不等于领域/控制接口已完全对齐或具备有效零样本任务能力。两次失败不能估计整体表现；未启动训练。完整日志与视频位于 `$FYP_STORAGE/results/pi05-base-check/libero-19494`。
+
+扩展筛查三个任务，各用 5 个开发初始化（0–4）：S1 黑碗放盘子、O2 奶酪放篮子、G1 打开中间抽屉。15 条轨迹均保存视频。任务在单卡上顺序运行，保留 base 加校准的协议和 350 步时限，各任务目录独立。这是筛查，不进行训练，也不视为与 Evo 在同协议下的比较。
+
+```bash
+source "$HOME/.config/fyp/evo1-env.sh"
+cd "$HOME/RLinf"
+sbatch --wait --parsable --partition=GPU --nodelist="$FYP_NODE" \
+  --gres=gpu:4090:1 --cpus-per-task=8 --time=00:45:00 \
+  --job-name=fyp-pi05-screen \
+  --output="$FYP_STORAGE/results/pi05-base-check/screen-%j.log" \
+  evaluations/fyp/screen_pi05_libero_job.sh
+```

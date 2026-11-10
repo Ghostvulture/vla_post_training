@@ -429,3 +429,15 @@ sbatch --wait --parsable --partition=GPU --nodelist="$FYP_NODE" \
 ```
 
 Slurm job 19494 completed two distinct SG6 development trajectories (IDs 0 and 1): success_once 0/2 and success_at_end 0/2, each reaching 350 steps without an environment error in the log. Logged episode durations were 38.794 and 38.244 seconds; total single-GPU allocation was 165 seconds. Sampled video frames show arm motion without observed target pickup or placement. This verifies an executable pipeline, not correct domain/control alignment or useful zero-shot task ability. Two failures do not estimate overall performance. No training was started. Full logs and videos are under `$FYP_STORAGE/results/pi05-base-check/libero-19494`.
+
+Screen three additional tasks, five development states (0–4) each: S1 bowl to plate, O2 cream cheese to basket, G1 open middle drawer. All 15 episodes save videos. Tasks run sequentially on one GPU, retain the calibrated-base protocol and 350-step limit, and write separate per-task directories. This is screening, not training or an Evo comparison under matched protocols.
+
+```bash
+source "$HOME/.config/fyp/evo1-env.sh"
+cd "$HOME/RLinf"
+sbatch --wait --parsable --partition=GPU --nodelist="$FYP_NODE" \
+  --gres=gpu:4090:1 --cpus-per-task=8 --time=00:45:00 \
+  --job-name=fyp-pi05-screen \
+  --output="$FYP_STORAGE/results/pi05-base-check/screen-%j.log" \
+  evaluations/fyp/screen_pi05_libero_job.sh
+```
