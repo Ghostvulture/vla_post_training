@@ -26,21 +26,21 @@ PREFIX = "checkpoints/pi05_base/"
 API = "https://storage.googleapis.com/storage/v1/b/openpi-assets/o"
 
 
-def relative_name(name):
+def relative_name(name, prefix=PREFIX):
     """Reject objects outside the fixed checkpoint prefix."""
-    if not name.startswith(PREFIX):
+    if not name.startswith(prefix):
         raise ValueError(f"Unexpected object: {name}")
-    relative = PurePosixPath(name[len(PREFIX) :])
+    relative = PurePosixPath(name[len(prefix) :])
     if relative.is_absolute() or ".." in relative.parts or not relative.parts:
         raise ValueError(f"Invalid object path: {name}")
     return Path(*relative.parts)
 
 
-def fetch_manifest():
+def fetch_manifest(prefix=PREFIX):
     items = []
     token = None
     while True:
-        query = {"prefix": PREFIX, "maxResults": 1000}
+        query = {"prefix": prefix, "maxResults": 1000}
         if token:
             query["pageToken"] = token
         with urllib.request.urlopen(
@@ -56,8 +56,8 @@ def fetch_manifest():
     return [{k: x[k] for k in ("name", "size", "generation")} for x in items]
 
 
-def download(item, root):
-    target = root / relative_name(item["name"])
+def download(item, root, prefix=PREFIX):
+    target = root / relative_name(item["name"], prefix)
     target.parent.mkdir(parents=True, exist_ok=True)
     size = int(item["size"])
     if target.exists():
@@ -111,7 +111,11 @@ def download(item, root):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument(
+        "--checkpoint", choices=["pi05_base", "pi05_libero"], default="pi05_base"
+    )
     args = parser.parse_args()
+    prefix = f"checkpoints/{args.checkpoint}/"
     args.output.mkdir(parents=True, exist_ok=True)
     with (args.output / ".download.lock").open("w") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -123,19 +127,21 @@ def main():
                 raise ValueError(
                     "Existing weights have no recorded download provenance"
                 )
-            items = fetch_manifest()
+            items = fetch_manifest(prefix)
             with manifest_path.open("x") as output:
                 json.dump(items, output, indent=2)
         print(
-            f"Official pi05_base: {len(items)} objects, {sum(int(x['size']) for x in items)} bytes",
+            f"Official {args.checkpoint}: {len(items)} objects, {sum(int(x['size']) for x in items)} bytes",
             flush=True,
         )
         for item in items:
-            download(item, args.output)
+            relative_name(item["name"], prefix)
+        for item in items:
+            download(item, args.output, prefix)
         (args.output / "download-complete.json").write_text(
             json.dumps(
                 {
-                    "source": "gs://openpi-assets/checkpoints/pi05_base",
+                    "source": f"gs://openpi-assets/checkpoints/{args.checkpoint}",
                     "objects": len(items),
                     "validation": "generation-pinned HTTPS downloads and byte counts; model loading not yet verified",
                 },

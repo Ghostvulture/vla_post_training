@@ -443,3 +443,12 @@ sbatch --wait --parsable --partition=GPU --nodelist="$FYP_NODE" \
 ```
 
 Expanded screening completed on 2026-11-10 (Slurm 19560, Git 1b69cea4): S1, O2 and G1 each completed development states 0–4, with success_once and success_at_end both 0/5 for every task. All 15 episodes reached 350 steps; five videos were saved per task. One GPU (physical index 2) ran for 12m57s. Job 19557 failed during model loading from GPU contention and completed no trajectories; exclude it from task failure rates. Together with SG6 (0/2), no success was observed in 17 attempts across four tasks. This is not a full LIBERO benchmark or a conclusion about other checkpoints. A LIBERO-adapted positive control is recommended next; no control run or training has started. Results: `$FYP_STORAGE/results/pi05-base-check/libero-19560-{S1,O2,G1}`.
+
+The next positive control uses official `gs://openpi-assets/checkpoints/pi05_libero`, stored separately from base weights. The official model config uses action horizon 10 and `discrete_state_input=False`; do not reuse the base shape blindly. Only inference is planned, on S1/O2/G1 with five development states each. Download the adapted weights first; conversion and evaluation follow after integrity checks.
+
+```bash
+source "$HOME/.config/fyp/evo1-env.sh"
+cd "$HOME/RLinf"
+python evaluations/fyp/download_pi05_base.py --checkpoint pi05_libero \
+  --output "$FYP_STORAGE/models/pi05_libero_jax"
+```
