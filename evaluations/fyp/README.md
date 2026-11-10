@@ -452,3 +452,14 @@ cd "$HOME/RLinf"
 python evaluations/fyp/download_pi05_base.py --checkpoint pi05_libero \
   --output "$FYP_STORAGE/models/pi05_libero_jax"
 ```
+
+The official adapted checkpoint download contains 16 objects. Convert it in a separate CPU Slurm job, retaining its original LIBERO statistics. Evaluation must explicitly use horizon 10 and disable discrete state input; the converter metadata alone does not configure RLinf inference.
+
+```bash
+source "$HOME/.config/fyp/evo1-env.sh"
+cd "$HOME/RLinf"
+sbatch --wait --parsable --partition=GPU --nodelist="$FYP_NODE" \
+  --cpus-per-task=8 --time=00:30:00 --job-name=fyp-pi05-control-convert \
+  --output="$FYP_STORAGE/results/pi05-base-check/control-convert-%j.log" \
+  evaluations/fyp/convert_pi05_libero_job.sh
+```

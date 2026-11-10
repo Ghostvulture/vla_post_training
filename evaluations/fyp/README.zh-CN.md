@@ -452,3 +452,14 @@ cd "$HOME/RLinf"
 python evaluations/fyp/download_pi05_base.py --checkpoint pi05_libero \
   --output "$FYP_STORAGE/models/pi05_libero_jax"
 ```
+
+官方适配版已下载，共 16 个对象。用独立 CPU Slurm 作业转换并保留随附 LIBERO 统计。评估配置必须显式使用 10 步预测长度并关闭离散状态输入，不能只依赖转换文件的元数据。
+
+```bash
+source "$HOME/.config/fyp/evo1-env.sh"
+cd "$HOME/RLinf"
+sbatch --wait --parsable --partition=GPU --nodelist="$FYP_NODE" \
+  --cpus-per-task=8 --time=00:30:00 --job-name=fyp-pi05-control-convert \
+  --output="$FYP_STORAGE/results/pi05-base-check/control-convert-%j.log" \
+  evaluations/fyp/convert_pi05_libero_job.sh
+```
