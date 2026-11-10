@@ -20,11 +20,27 @@ python - <<'PY'
 import json, os, subprocess
 from pathlib import Path
 from evaluations.fyp.evaluate import resolve_tasks
+# Respect scheduler-visible devices; fail rather than sharing a busy GPU.
+rows = subprocess.check_output(['nvidia-smi', '--query-gpu=index,memory.used,memory.free', '--format=csv,noheader,nounits'], text=True)
+gpus = [tuple(int(x.strip()) for x in row.split(',')) for row in rows.splitlines()]
+allowed = {g[0] for g in gpus}
+for variable in ('SLURM_JOB_GPUS', 'CUDA_VISIBLE_DEVICES'):
+    raw = os.environ.get(variable, '')
+    if raw:
+        if not all(x.strip().isdigit() for x in raw.split(',')):
+            raise ValueError(f'Cannot safely resolve {variable}={raw}')
+        allowed &= {int(x.strip()) for x in raw.split(',')}
+candidates = [i for i, used, free in gpus if i in allowed and used < 1024 and free >= 12000]
+if not candidates:
+    raise RuntimeError('No scheduler-visible idle GPU with at least 12 GiB free')
+gpu = candidates[0]
 manifest = json.loads(Path('evaluations/fyp/tasks.json').read_text())
 task = next(t for t in manifest if t['key'] == os.environ['PI05_TASK'])
 trials = list(range(int(os.environ['PI05_EPISODES'])))
 resolved, _ = resolve_tasks([task], trials)
 root = Path(os.environ['PI05_CHECK_OUTPUT'])
+(root / 'gpu-rank.txt').write_text(str(gpu))
+(root / 'gpu-allocation.json').write_text(json.dumps({'selected_physical_index': gpu, 'memory_snapshot': gpus, 'SLURM_JOB_GPUS': os.environ.get('SLURM_JOB_GPUS'), 'CUDA_VISIBLE_DEVICES': os.environ.get('CUDA_VISIBLE_DEVICES')}, indent=2))
 (root / 'task-id.txt').write_text(str(resolved[0]['task_id']))
 (root / 'suite.txt').write_text(task['suite'])
 (root / 'trials.txt').write_text(json.dumps(trials, separators=(',', ':')))
@@ -38,12 +54,13 @@ root = Path(os.environ['PI05_CHECK_OUTPUT'])
     'weight_training': False,
 }, indent=2))
 PY
+gpu=$(cat "$PI05_CHECK_OUTPUT/gpu-rank.txt")
 task_id=$(cat "$PI05_CHECK_OUTPUT/task-id.txt")
 suite=$(cat "$PI05_CHECK_OUTPUT/suite.txt")
 trials=$(cat "$PI05_CHECK_OUTPUT/trials.txt")
 python -m pip freeze > "$PI05_CHECK_OUTPUT/packages.txt"
 bash evaluations/run_eval.sh libero libero_pi05_base_calibrated_eval \
-  '~cluster.component_placement' '+cluster.component_placement={env:0,rollout:0}' \
+  '~cluster.component_placement' "+cluster.component_placement={env:$gpu,rollout:$gpu}" \
   "+env.eval.task_id_filter=[$task_id]" \
   "env.eval.task_suite_name=$suite" \
   "env.eval.eval_trial_ids=$trials" \
