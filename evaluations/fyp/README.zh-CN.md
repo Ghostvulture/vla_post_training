@@ -441,3 +441,5 @@ sbatch --wait --parsable --partition=GPU --nodelist="$FYP_NODE" \
   --output="$FYP_STORAGE/results/pi05-base-check/screen-%j.log" \
   evaluations/fyp/screen_pi05_libero_job.sh
 ```
+
+2026-11-10 扩展筛查已完成（Slurm 19560，Git 1b69cea4）：S1、O2、G1 各完成初始化 0–4，共 15 条轨迹，success_once 与 success_at_end 均各为 0/5，全部达到 350 步，每项保存 5 个视频。单张 GPU 2 总用时 12 分 57 秒。前次 19557 在加载时显存不足，未完成轨迹，不计入失败率。加上 SG6 的 0/2，当前四任务共 17 次未观察到成功；这不等于完整 LIBERO 或其他 checkpoint 的结论。下一步建议适配版正对照；尚未启动正对照或训练。结果位于 `$FYP_STORAGE/results/pi05-base-check/libero-19560-{S1,O2,G1}`。
