@@ -321,6 +321,11 @@ class LiberoEnv(gym.Env):
 
                 env = WorkerEnv(**param)
                 env.seed(seed)
+                diagnostic_dir = os.environ.get("FYP_PLACEMENT_DIAGNOSTIC_DIR")
+                if diagnostic_dir:
+                    from .placement_diagnostic import instrument_placement
+
+                    env = instrument_placement(env, diagnostic_dir)
                 return env
 
             env_fns.append(env_fn)

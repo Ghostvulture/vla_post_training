@@ -498,3 +498,7 @@ B2N 是当前最有希望的换容器候选，但曾经成功与结束成功差�
 训练启动器默认启用 `CATCH_SYSTEM_FAILURE=1` 和 `PYTHONFAULTHANDLER=1`，由框架记录可捕获信号。`worker-resources.jsonl` 每15秒记录本用户、本Slurm作业的Ray worker及其祖先cgroup内存事件，首次发现进程时记录实际limits。监测仅读取信息，随启动器退出；无法捕获SIGKILL，也不保证内核或外部终止原因可见。无需更改系统ptrace设置。
 
 10轮留出比较已完成：3模型×7条件×20初始化（30–49），共420条，无环境错误。按原模型/普通RL/布局多样化顺序，success_once：SG6 14/12/16；A1 15/10/16；A2 18/11/19；B2N 14/1/16；B2P 1/0/0；G1 19/19/19；SG7 20/20/20（各分母20）。B2N的success_at_end为0/0/2。普通RL出现明显近任务负迁移；多样化优于普通RL，但相对原模型仅多2次白碗成功，单训练种子不足以证明稳定正迁移。结果位于 `$FYP_STORAGE/results/sg6-transfer-ten-v1/eval-{base,plain,diverse}`。本批未保存留出视频，不用开发录像替代其行为证据；不据此挑选其他checkpoint。
+
+### 原任务逐步放置诊断
+
+仅诊断SG6时，可在启动评估前设置 `FYP_PLACEMENT_DIAGNOSTIC_DIR` 为独立输出目录。每个仿真进程按PID保存JSONL：初始化事件、每步动作、物体位姿与速度、接触、夹爪关节、On判据及环境成功信号。它不改变动作、奖励或终止条件。单次仅选一个初始化，避免PID与轨迹归属混淆；原始记录包含初始化后的settling步，分析时必须与350个策略动作步对齐。诊断结束后unset该变量。录像重跑不合并历史成绩。
