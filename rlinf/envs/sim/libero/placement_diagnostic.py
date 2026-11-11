@@ -26,7 +26,7 @@ def instrument_placement(env, directory):
     root.mkdir(parents=True, exist_ok=True)
     path = root / f"sim-{os.getpid()}.jsonl"
     core = env.env
-    names = ("cream_cheese_1", "akita_black_bowl_1")
+    names = ("cream_cheese_1", os.environ.get("FYP_DIAGNOSTIC_TARGET", "akita_black_bowl_1"))
     states = [ObjectState(core, name) for name in names]
     objects = [core.get_object(name) for name in names]
     original_step = env.step
