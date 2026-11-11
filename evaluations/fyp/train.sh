@@ -11,6 +11,10 @@ test -z "$(git status --porcelain)" || { echo 'Server checkout must be clean'; e
 test ! -e "$output" || { echo 'Use a fresh output directory'; exit 1; }
 mkdir -p "$output"
 export TMPDIR=/tmp
+export CATCH_SYSTEM_FAILURE=1 PYTHONFAULTHANDLER=1
+python -u evaluations/fyp/monitor_workers.py > "$output/worker-resources.jsonl" 2>&1 &
+monitor_pid=$!
+trap 'kill "$monitor_pid" 2>/dev/null || true' EXIT
 export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 PYTHONUNBUFFERED=1
 export MUJOCO_GL=egl PYOPENGL_PLATFORM=egl LIBERO_TYPE=standard ROBOT_PLATFORM=LIBERO
 export EMBODIED_PATH="$PWD/examples/embodiment"
