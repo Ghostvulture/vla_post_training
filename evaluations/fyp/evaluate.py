@@ -64,6 +64,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--variant-root", type=Path, help="Server-generated immutable task variants"
     )
+    parser.add_argument("--seed", type=int, default=None, help="Explicit environment and inference seed; omitted preserves legacy protocol")
     parser.add_argument("--trial-start", type=int, default=0)
     parser.add_argument("--num-envs", type=int, default=1, choices=[1, 2, 4])
     parser.add_argument(
@@ -129,7 +130,7 @@ def build_command(
         "env.eval.use_fixed_reset_state_ids=true",
         "env.eval.use_ordered_reset_state_ids=true",
         "env.eval.specific_reset_id=null",
-        "env.eval.seed=0",
+        f"env.eval.seed={args.seed if args.seed is not None else 0}",
         f"env.eval.video_cfg.save_video={str(args.video).lower()}",
         f"rollout.model.model_path={json.dumps(str(args.model_path))}",
         f"rollout.model.evo1.repo_path={json.dumps(str(args.evo_repo))}",
@@ -137,6 +138,8 @@ def build_command(
         f"runner.logger.log_path={json.dumps(str(output))}",
         f"runner.logger.experiment_name=fyp_{task['key']}",
     ]
+    if args.seed is not None:
+        command.append(f"+rollout.inference_seed={args.seed}")
     if task.get("scene_properties"):
         props = task["scene_properties"]
         command.append(
@@ -425,6 +428,8 @@ def main(argv: list[str] | None = None) -> int:
         "libero_package_path": str(libero_path),
         "protocol": {
             **PROTOCOL,
+            "seed": args.seed if args.seed is not None else 0,
+            "inference_seed": args.seed,
             "num_envs": args.num_envs,
             "variant_root": str(args.variant_root.resolve())
             if args.variant_root

@@ -502,3 +502,5 @@ The ten-iteration held-out comparison completed: 3 models × 7 conditions × 20 
 ### Per-step placement diagnostics
 
 For SG6 diagnostics only, set `FYP_PLACEMENT_DIAGNOSTIC_DIR` to a separate output directory before evaluation. Each simulator PID writes JSONL containing initialization events, actions, object poses and velocities, contacts, gripper joints, the On predicate and environment success. Instrumentation does not alter actions, rewards or termination. Evaluate one initialization per invocation to identify trajectories unambiguously. Records include settling steps: align them with the 350 policy steps before analysis. Unset the variable afterwards. Never merge diagnostic reruns into historical scores.
+
+Explicit screening seeds: pass `--seed N` to evaluate.py to seed both environment and rollout Python/NumPy/Torch RNGs (rollout adds worker rank). Omitting it preserves the previous environment seed 0 without an explicit inference seed. Seed-controlled runs are a separate protocol; they do not guarantee bitwise determinism.

@@ -154,6 +154,13 @@ class MultiStepRolloutWorker(Worker):
         return self.collect_transitions and not self.enable_rlt
 
     def init_worker(self):
+        inference_seed = self.cfg.rollout.get("inference_seed", None)
+        if inference_seed is not None:
+            from rlinf.utils.utils import seed_everything
+
+            seed_everything(int(inference_seed) + self._rank)
+            self.log_info(f"Explicit inference seed: {int(inference_seed) + self._rank}")
+
         # Train uses actor.model as the architecture source; overlay rollout.model
         # (path, precision, and nested inference knobs). Eval-only is a no-op merge.
         rollout_model_config = OmegaConf.merge(self.model_cfg, self.cfg.rollout.model)
