@@ -52,6 +52,9 @@ class Model(OfficialPolicy):
         adapter = os.environ.get("FYP_RL_ADAPTER")
         self.tuned = PeftModel.from_pretrained(self.model, adapter).eval() if adapter else None
         self.collect = bool(os.environ.get("FYP_ROLLOUT_DIR"))
+        # Loading different adapters can consume a different number of draws.
+        torch.manual_seed(int(os.environ["FYP_POLICY_SEED"]))
+        self.check_base = self.tuned is None
         self.batch = -1
         self.new_batch = True
 
@@ -77,6 +80,9 @@ class Model(OfficialPolicy):
         assert steps == 10 and int(self.model_cfg.get("domain_id", 0)) == 0
         image = observation["images"][0]
         prompt = observation["prompt"]
+        if self.check_base:
+            with torch.random.fork_rng(devices=[torch.cuda.current_device()]):
+                reference = super().infer(observation, steps=steps)
         inputs, state = encode_inputs(self.processor, image, prompt, observation["proprio"], self.device)
         net = self.model
         with self.tuned.disable_adapter() if self.tuned is not None else nullcontext():
@@ -91,6 +97,10 @@ class Model(OfficialPolicy):
         if self.tuned is not None:
             enc = net.forward_vlm(**inputs)
         mean = flow_step(net, enc, state, xt, t)
+        if self.check_base:
+            predicted = net.action_space.postprocess(mean.clone())[0].cpu().numpy()
+            np.testing.assert_allclose(predicted, reference, rtol=1e-5, atol=2e-5)
+            self.check_base = False
         raw = mean
         if self.collect:
             raw = mean + torch.randn_like(mean) * exploration_scale(mean)
