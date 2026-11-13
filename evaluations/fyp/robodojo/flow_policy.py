@@ -15,6 +15,7 @@
 """X-VLA policy with an adaptable last flow step and optional Gaussian exploration."""
 
 import os
+import math
 from pathlib import Path
 
 import numpy as np
@@ -103,10 +104,15 @@ class Model(OfficialPolicy):
             self.check_base = False
         raw = mean
         if self.collect:
-            raw = mean + torch.randn_like(mean) * exploration_scale(mean)
+            multiplier = float(os.environ.get("FYP_EXPLORATION_MULTIPLIER", "1"))
+            if not math.isfinite(multiplier) or multiplier <= 0:
+                raise ValueError(f"Invalid exploration multiplier {multiplier}")
+            scale = exploration_scale(mean) * multiplier
+            raw = mean + torch.randn_like(mean) * scale
             directory = Path(os.environ["FYP_ROLLOUT_DIR"]) / f"batch-{self.batch}" / f"env-{next(self.record_ids)}"
             directory.mkdir(parents=True, exist_ok=True)
             with (directory / f"{self.chunk:04d}.npz").open("xb") as stream:
                 np.savez_compressed(stream, image=image, prompt=prompt, proprio=observation["proprio"],
-                                    xt=xt[0].cpu().numpy(), mean=mean[0].cpu().numpy(), raw=raw[0].cpu().numpy())
+                                    xt=xt[0].cpu().numpy(), mean=mean[0].cpu().numpy(), raw=raw[0].cpu().numpy(),
+                                    scale=scale.cpu().numpy())
         return net.action_space.postprocess(raw)[0].cpu().numpy()

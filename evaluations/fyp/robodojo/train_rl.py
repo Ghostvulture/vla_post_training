@@ -90,8 +90,10 @@ def main():
             with np.load(path, allow_pickle=False) as ex:
                 inputs, state = encode_inputs(processor, ex["image"], ex["prompt"].item(), ex["proprio"], "cuda")
                 xt, old, raw = [torch.from_numpy(ex[k]).cuda().unsqueeze(0) for k in ("xt", "mean", "raw")]
+                scale = torch.from_numpy(ex["scale"]).to(old) if "scale" in ex else exploration_scale(old)
+                if scale.shape != (old.shape[-1],) or not torch.isfinite(scale).all() or not (scale > 0).all():
+                    raise ValueError(f"Invalid recorded exploration scale in {path}")
             mean = flow_step(net, net.forward_vlm(**inputs), state, xt, state.new_full((1,), 0.1))
-            scale = exploration_scale(mean)
             if update == 0 and not torch.allclose(mean, old, rtol=1e-5, atol=2e-5):
                 raise ValueError("Behavior mean replay mismatch before update")
             # Joint density of the executed prefix; unexecuted tail has zero credit.
