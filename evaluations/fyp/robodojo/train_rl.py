@@ -60,7 +60,10 @@ def main():
     for name in ("base", "data", "result", "output"):
         parser.add_argument(f"--{name}", required=True, type=Path)
     parser.add_argument("--arm", choices=("head", "shared"), required=True)
+    parser.add_argument("--learning-rate", type=float, default=2e-5)
     args = parser.parse_args()
+    if not math.isfinite(args.learning_rate) or args.learning_rate <= 0:
+        parser.error("--learning-rate must be positive and finite")
     args.output.mkdir(parents=True, exist_ok=False)
     torch.manual_seed(42)
     rng = random.Random(42)
@@ -81,7 +84,7 @@ def main():
     n_params = sum(p.numel() for p in params)
     if n_params != 393216:
         raise ValueError(f"Unmatched trainable parameter budget: {n_params}")
-    opt = torch.optim.AdamW(params, lr=2e-5, weight_decay=0)
+    opt = torch.optim.AdamW(params, lr=args.learning_rate, weight_decay=0)
     history = []
     for update in range(32):
         opt.zero_grad()
@@ -111,6 +114,7 @@ def main():
         raise ValueError("Invalid policy update")
     model.save_pretrained(args.output)
     (args.output / "training.json").write_text(json.dumps({"arm": args.arm, "trainable": n_params,
+        "learning_rate": args.learning_rate,
         "env_steps": interactions, "chunks": len(chunks), "train_episodes": results["eval_time"],
         "train_success_rate": results["success_rate"], "updates": history}, indent=2))
 
