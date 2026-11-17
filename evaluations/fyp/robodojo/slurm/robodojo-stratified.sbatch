@@ -93,10 +93,19 @@ case "$collection" in
 esac
 test -s "$control/adapter_model.safetensors"
 printf '%s\n' "$collection" "$data" "$control" > "$archive/sources.txt"
-python "$src/train_rl.py" --base "$work/ckpt-100000" --data "$data/train-traces" --result "$data/collect.json" --output "$archive/stratified" --arm shared --learning-rate 2e-6 --success-stratified
+trained="$archive/stratified"
+if [[ -n "${2:-}" ]]; then
+    trained="$2"
+    test -s "$trained/adapter_model.safetensors"
+    test -s "$trained/training.json"
+    cmp "$archive/sources.txt" "$(dirname "$trained")/sources.txt"
+    echo "$trained" > "$archive/reused-checkpoint.txt"
+else
+    python "$src/train_rl.py" --base "$work/ckpt-100000" --data "$data/train-traces" --result "$data/collect.json" --output "$archive/stratified" --arm shared --learning-rate 2e-6 --success-stratified
+fi
 for arm in uniform stratified; do
     export FYP_RL_ADAPTER="$control"
-    if [[ "$arm" == stratified ]]; then export FYP_RL_ADAPTER="$archive/stratified"; fi
+    if [[ "$arm" == stratified ]]; then export FYP_RL_ADAPTER="$trained"; fi
     export ROBODOJO_RUN_ID="fyp-$SLURM_JOB_ID-$arm-training-layouts"
     bash scripts/robodojo.sh eval --policy-dir "XPolicyLab/policy/$model_name" --task stack_blocks --ckpt "$ref" --seed 0 --eval-num 20 --env-cfg arx_x5 --action-type ee --policy-env XVLA-np126 --eval-env RoboDojo --policy-gpu "$gpu" --env-gpu "$gpu"
     cp "eval_result/RoboDojo/stack_blocks/$model_name/arx_x5/0_ckpt_name=${ref},action_type=ee/$ROBODOJO_RUN_ID/_result.json" "$archive/$arm-training-layouts.json"
