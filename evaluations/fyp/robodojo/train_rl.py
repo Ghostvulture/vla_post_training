@@ -61,6 +61,7 @@ def main():
         parser.add_argument(f"--{name}", required=True, type=Path)
     parser.add_argument("--arm", choices=("head", "shared"), required=True)
     parser.add_argument("--learning-rate", type=float, default=2e-5)
+    parser.add_argument("--success-stratified", action="store_true")
     args = parser.parse_args()
     if not math.isfinite(args.learning_rate) or args.learning_rate <= 0:
         parser.error("--learning-rate must be positive and finite")
@@ -85,11 +86,31 @@ def main():
     if n_params != 393216:
         raise ValueError(f"Unmatched trainable parameter budget: {n_params}")
     opt = torch.optim.AdamW(params, lr=args.learning_rate, weight_decay=0)
+    successes = {}
+    failures = []
+    for chunk in chunks:
+        if chunk[2] > 0:
+            successes.setdefault(chunk[0].parent, []).append(chunk)
+        else:
+            failures.append(chunk)
+    if args.success_stratified and not 1 <= len(successes) < 4:
+        raise ValueError("Need 1–3 successful sources for four-block stratification")
     history = []
     for update in range(32):
         opt.zero_grad()
         log_ratios = []
-        for path, used, advantage in rng.sample(chunks, 4):
+        if args.success_stratified:
+            n_fail = 4 - len(successes)
+            batch = [(rng.choice(pool), len(pool) / len(chunks)) for pool in successes.values()]
+            batch.extend((c, len(failures) / (len(chunks) * n_fail))
+                         for c in rng.sample(failures, n_fail))
+        else:
+            batch = [(c, 0.25) for c in rng.sample(chunks, 4)]
+        assert len(batch) == 4 and math.isclose(sum(w for _, w in batch), 1.)
+        samples = []
+        for (path, used, advantage), weight in batch:
+            samples.append(dict(block=str(path.relative_to(args.data)), used=used,
+                                advantage=advantage, weight=weight))
             with np.load(path, allow_pickle=False) as ex:
                 inputs, state = encode_inputs(processor, ex["image"], ex["prompt"].item(), ex["proprio"], "cuda")
                 xt, old, raw = [torch.from_numpy(ex[k]).cuda().unsqueeze(0) for k in ("xt", "mean", "raw")]
@@ -105,11 +126,11 @@ def main():
             log_ratio = (z * shift - 0.5 * shift.square()).sum()
             ratio = log_ratio.clamp(-20, 20).exp()
             loss = -torch.minimum(ratio * advantage, ratio.clamp(0.8, 1.2) * advantage)
-            (loss / 4).backward()
+            (loss * weight).backward()
             log_ratios.append(log_ratio.detach().item())
         grad = torch.nn.utils.clip_grad_norm_(params, 1., error_if_nonfinite=True)
         opt.step()
-        history.append({"grad_norm": grad.item(), "log_ratios": log_ratios})
+        history.append({"grad_norm": grad.item(), "log_ratios": log_ratios, "samples": samples})
     if not any(x["grad_norm"] > 0 for x in history) or not all(torch.isfinite(p).all() for p in params):
         raise ValueError("Invalid policy update")
     model.save_pretrained(args.output)
