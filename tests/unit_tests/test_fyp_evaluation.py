@@ -339,3 +339,70 @@ def test_pi05_base_calibration_keeps_base_shape(tmp_path, monkeypatch):
     )
     assert list(cfg.env.eval.eval_trial_ids) == [0, 1]
     assert cfg.env.eval.total_num_envs * cfg.env.eval.rollout_epoch == 2
+
+
+@pytest.mark.parametrize("fail_after_action", [False, True])
+def test_robodojo_diagnostic_preserves_control_loop(tmp_path, monkeypatch, fail_after_action):
+    """The logger preserves command identity and restores hooks after failures."""
+    import importlib.util
+    from types import ModuleType, SimpleNamespace
+
+    commands = [{"left_ee_pose": [1.0, 2.0, 3.0]}]
+    observation = {"env_idx": 0, "state": {"left_joint_state": [0.1]}}
+    received = []
+
+    class Body:
+        def get_world_pose(self):
+            return [0.0, 0.0, 0.0], [1.0, 0.0, 0.0, 0.0]
+
+        def get_linear_velocity(self):
+            return [0.0, 0.0, 0.0]
+
+        def get_angular_velocity(self):
+            return [0.0, 0.0, 0.0]
+
+    class Environment:
+        num_envs = 1
+        current_env_seed_map = {0: 0}
+        take_action_cnt = [0]
+        success = [False]
+        end_flag = [False]
+        scene_manager = SimpleNamespace(_rigid_and_dynamic_objects=[{"bowl": Body()}])
+
+        def get_obs_batch(self, env_idx_list=None, last_frame=False):
+            return [observation]
+
+        def take_action_batch(self, actions_list, env_idx_list=None):
+            received.append((actions_list, env_idx_list))
+            self.take_action_cnt[0] += 1
+            return "unchanged return value"
+
+    def official_loop(env, client):
+        assert env.get_obs_batch([0])[0] is observation
+        assert env.take_action_batch(commands, [0]) == "unchanged return value"
+        if fail_after_action:
+            raise RuntimeError("external simulator failed")
+
+    package = ModuleType("XPolicyLab.policy.X_VLA")
+    package.deploy = SimpleNamespace(eval_one_episode_batch=official_loop)
+    monkeypatch.setitem(sys.modules, "XPolicyLab.policy.X_VLA", package)
+    path = ROOT / "evaluations/fyp/robodojo/diagnostic_client.py"
+    spec = importlib.util.spec_from_file_location("diagnostic_client_test", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    monkeypatch.setenv("FYP_DIAGNOSTIC_DIR", str(tmp_path))
+    env = Environment()
+    original_obs, original_action = env.get_obs_batch, env.take_action_batch
+    if fail_after_action:
+        with pytest.raises(RuntimeError, match="external simulator"):
+            module.eval_one_episode_batch(env, None)
+    else:
+        module.eval_one_episode_batch(env, None)
+    assert env.get_obs_batch == original_obs
+    assert env.take_action_batch == original_action
+    assert received[0][0] is commands
+    rows = [json.loads(line) for line in (tmp_path / "client.jsonl").read_text().splitlines()]
+    assert [r["event"] for r in rows[:4]] == ["initial", "observation", "before_action", "after_action"]
+    assert rows[2]["state"]["0"]["step"] == 0
+    assert rows[3]["state"]["0"]["step"] == 1
+    assert (rows[-1]["event"] == "complete") is not fail_after_action
