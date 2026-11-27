@@ -406,3 +406,48 @@ def test_robodojo_diagnostic_preserves_control_loop(tmp_path, monkeypatch, fail_
     assert rows[2]["state"]["0"]["step"] == 0
     assert rows[3]["state"]["0"]["step"] == 1
     assert (rows[-1]["event"] == "complete") is not fail_after_action
+
+
+def test_robotwin_paired_results_reject_errors_and_mismatches():
+    from copy import deepcopy
+
+    from evaluations.fyp.robotwin_compare import summarize_pairs
+
+    base = [{"status": "completed", "reset_seed": seed, "policy_seed": seed + 100,
+             "initial_scene": [["stapler", float(seed)]], "success": success}
+            for seed, success in [(2053, True), (2054, False)]]
+    ppo = deepcopy(base)
+    ppo[0]["success"], ppo[1]["success"] = False, True
+
+    def same_scene(left, right):
+        return left == right
+
+    result = summarize_pairs(base, ppo, [2053, 2054], same_scene)
+    assert result["base_successes"] == result["ppo_successes"] == 1
+    assert result["failure_to_success"] == result["success_to_failure"] == 1
+    for key, value in [("status", "error"), ("reset_seed", 2053),
+                       ("policy_seed", 999), ("initial_scene", [["stapler", 0.0]])]:
+        invalid = deepcopy(ppo)
+        invalid[1][key] = value
+        with pytest.raises(ValueError):
+            summarize_pairs(base, invalid, [2053, 2054], same_scene)
+    with pytest.raises(ValueError):
+        summarize_pairs(base, ppo[:1], [2053, 2054], same_scene)
+
+
+def test_robotwin_vulkan_uses_allocated_uuid(monkeypatch):
+    from types import SimpleNamespace
+
+    from evaluations.fyp.robotwin_qualify import bind_allocated_gpu
+
+    torch = SimpleNamespace(cuda=SimpleNamespace(
+        device_count=lambda: 1,
+        get_device_properties=lambda index: SimpleNamespace(uuid="assigned", name="RTX 4090")))
+    monkeypatch.setattr("evaluations.fyp.robotwin_qualify.subprocess.check_output",
+                        lambda *a, **kw: "GPU-other, 00000000:10:00.0, 580\nGPU-assigned, 00000000:38:00.0, 580\n")
+    monkeypatch.setenv("FYP_ROBOTWIN_VULKAN_DEVICE", "")
+    result = bind_allocated_gpu(torch)
+    assert result["vulkan_device"] == "pci:38:00.0"
+    torch.cuda.get_device_properties = lambda index: SimpleNamespace(uuid="invisible", name="RTX 4090")
+    with pytest.raises(RuntimeError, match="Cannot map allocated"):
+        bind_allocated_gpu(torch)

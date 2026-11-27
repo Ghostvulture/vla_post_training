@@ -41,6 +41,29 @@ def stream_digest(path: Path) -> str:
     return checksum.hexdigest()
 
 
+def bind_allocated_gpu(torch) -> dict:
+    """Select the Vulkan device by the UUID of the single visible CUDA GPU."""
+    if torch.cuda.device_count() != 1:
+        raise RuntimeError("Expected exactly one GPU visible to PyTorch")
+    gpu = torch.cuda.get_device_properties(0)
+    uuid = str(gpu.uuid).lower().removeprefix("gpu-")
+    inventory = subprocess.check_output(
+        ["nvidia-smi", "--query-gpu=uuid,pci.bus_id,driver_version", "--format=csv,noheader"],
+        text=True,
+    )
+    assigned = [line.split(", ") for line in inventory.splitlines()
+                if line.split(",")[0].lower().removeprefix("gpu-") == uuid]
+    if len(assigned) != 1:
+        raise RuntimeError(f"Cannot map allocated CUDA GPU UUID {uuid} to Vulkan")
+    match = re.fullmatch(r"[0-9a-fA-F]+:([0-9a-fA-F]{2}):([0-9a-fA-F]{2})\.([0-9a-fA-F])", assigned[0][1])
+    if match is None:
+        raise RuntimeError(f"Unexpected PCI bus address: {assigned[0][1]}")
+    alias = "pci:" + ":".join(match.groups()[:2]) + "." + match.group(3)
+    os.environ["FYP_ROBOTWIN_VULKAN_DEVICE"] = alias.lower()
+    return dict(gpu=gpu.name, gpu_uuid=uuid, vulkan_device=alias,
+                driver=assigned[0][2], python=sys.version, prefix=sys.prefix)
+
+
 def main() -> None:
     """Extract existing easy assets, render, and exercise the native planner."""
     parser = argparse.ArgumentParser(description=__doc__)
@@ -64,25 +87,7 @@ def main() -> None:
         import torch
 
         torch.set_num_threads(int(os.environ.get("SLURM_CPUS_PER_TASK", "4")))
-        if torch.cuda.device_count() != 1:
-            raise RuntimeError("Expected exactly one GPU visible to PyTorch")
-        gpu = torch.cuda.get_device_properties(0)
-        uuid = str(gpu.uuid).lower().removeprefix("gpu-")
-        inventory = subprocess.check_output(
-            ["nvidia-smi", "--query-gpu=uuid,pci.bus_id,driver_version", "--format=csv,noheader"],
-            text=True,
-        )
-        assigned = [line.split(", ") for line in inventory.splitlines()
-                    if line.split(",")[0].lower().removeprefix("gpu-") == uuid]
-        if len(assigned) != 1:
-            raise RuntimeError(f"Cannot map allocated CUDA GPU UUID {uuid} to Vulkan")
-        match = re.fullmatch(r"[0-9a-fA-F]+:([0-9a-fA-F]{2}):([0-9a-fA-F]{2})\.([0-9a-fA-F])", assigned[0][1])
-        if match is None:
-            raise RuntimeError(f"Unexpected PCI bus address: {assigned[0][1]}")
-        alias = "pci:" + ":".join(match.groups()[:2]) + "." + match.group(3)
-        os.environ["FYP_ROBOTWIN_VULKAN_DEVICE"] = alias.lower()
-        report.update(gpu=gpu.name, gpu_uuid=uuid, vulkan_device=alias,
-                      driver=assigned[0][2], python=sys.version, prefix=sys.prefix)
+        report.update(bind_allocated_gpu(torch))
         packages = ("torch", "torchvision", "transformers", "numpy", "sapien", "mplib", "nvidia-curobo", "warp-lang")
         report["versions"] = {p: importlib.metadata.version(p) for p in packages}
         save()
